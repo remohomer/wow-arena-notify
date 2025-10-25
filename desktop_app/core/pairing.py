@@ -13,37 +13,12 @@ from core.config import load_config, save_config
 from core.logger import logger
 
 
-def _start_device_token_watcher(device_id: str, cfg: dict):
-    """Listen for token refreshes at /devices/<deviceId>/fcmToken and update config.json."""
-    if not device_id:
-        return
-    try:
-        ref = db.reference(f"devices/{device_id}/fcmToken")
-    except Exception as e:
-        logger.error(f"❌ Failed to create device token ref: {e}")
-        return
-
-    def _listener(event):
-        try:
-            token = event.data if isinstance(event.data, str) else None
-            if token:
-                logger.info(f"🔁 Device token updated in RTDB → {token[:16]}…")
-                cfg["fcm_token"] = token
-                save_config(cfg)
-        except Exception as e:
-            logger.warning(f"⚠ Error updating token from RTDB: {e}")
-
-    def _watch():
-        try:
-            ref.listen(_listener)
-        except Exception as e:
-            logger.error(f"⚠ Device token watcher error: {e}")
-
-    threading.Thread(target=_watch, daemon=True).start()
-
-
 def start_pairing(parent_widget):
-    """Rozpoczyna proces parowania telefonu z aplikacją desktopową."""
+    """
+    Generates a new pairing_id and shows a QR code.
+    The Android app will scan it and register its FCM token
+    under this pairing_id in Firebase (server-side only).
+    """
     cfg = load_config()
     rtdb_url = cfg.get("rtdb_url")
     firebase_path = cfg.get("firebase_sa_path")
@@ -56,7 +31,7 @@ def start_pairing(parent_widget):
         )
         return
 
-    # 🟢 Inicjalizacja Firebase
+    # 🟢 Initialize Firebase Admin (for temporary pairing node)
     try:
         cred = credentials.Certificate(firebase_path)
         if not firebase_admin._apps:
@@ -66,15 +41,15 @@ def start_pairing(parent_widget):
         QMessageBox.critical(parent_widget, "Error", f"Could not initialize Firebase:\n{e}")
         return
 
-    # 🆔 Unikalne ID parowania
+    # 🆔 Generate unique pairing_id
     pairing_id = str(uuid.uuid4())
 
-    # 🔹 Stwórz dane QR (JSON)
+    # 🔹 Create QR payload
     qr_payload = {"pid": pairing_id, "rtdb": rtdb_url}
     tmp = Path(tempfile.gettempdir()) / "wow_pair_qr.png"
     qrcode.make(json.dumps(qr_payload)).save(tmp)
 
-    # 🔹 Okno QR (modalne)
+    # 🔹 Show QR modal
     dlg = QDialog(parent_widget)
     dlg.setWindowTitle("Pair your device")
     dlg.setFixedSize(320, 420)
@@ -86,7 +61,7 @@ def start_pairing(parent_widget):
     lbl.setAlignment(Qt.AlignCenter)
     info = QLabel(
         "Scan this QR code using the WoW Arena Notify mobile app.\n\n"
-        "Waiting for your device to connect..."
+        "Your phone will register automatically."
     )
     info.setWordWrap(True)
     info.setAlignment(Qt.AlignCenter)
@@ -96,33 +71,22 @@ def start_pairing(parent_widget):
     dlg.setModal(True)
     dlg.show()
 
-    # 🔹 Nasłuch na pairing w RTDB (token + opcjonalnie deviceId)
+    # 🔹 Listen for pairing confirmation in RTDB
     ref = db.reference(f"pairing/{pairing_id}")
 
     def listener(event):
+        """Triggered when mobile app confirms pairing."""
         data = event.data
         if not isinstance(data, dict):
             return
 
-        token = (data.get("token") or "").strip()
         device_id = (data.get("deviceId") or "").strip()
-
-        changed = False
-        if token:
-            logger.info(f"📲 Received FCM token: {token}")
-            cfg["fcm_token"] = token
-            changed = True
-
         if device_id:
-            logger.info(f"🆔 Received deviceId: {device_id}")
+            logger.info(f"🆔 Device paired successfully (deviceId={device_id})")
+            cfg["pairing_id"] = pairing_id
             cfg["device_id"] = device_id
-            changed = True
-
-        if changed:
             save_config(cfg)
 
-        # Gdy mamy token → koniec parowania
-        if token:
             try:
                 ref.delete()
             except Exception:
@@ -131,12 +95,9 @@ def start_pairing(parent_widget):
             QMessageBox.information(
                 parent_widget,
                 "Pairing complete",
-                "✅ Device paired successfully!\nYour phone will now receive notifications.",
+                f"✅ Device paired successfully!\n\nPairing ID:\n{pairing_id}",
             )
             dlg.close()
-
-            # Start background watcher for future token refreshes (if deviceId is known)
-            _start_device_token_watcher(device_id or "", cfg)
 
     def watch_pairing():
         try:

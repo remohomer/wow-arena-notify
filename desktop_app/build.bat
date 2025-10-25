@@ -55,8 +55,13 @@ set FLAGS=--noconfirm --noupx --onefile --windowed ^
  --hidden-import=PySide6.QtCore ^
  --hidden-import=PySide6.QtGui ^
  --hidden-import=PySide6.QtWidgets ^
+ --hidden-import=win32crypt ^
+ --hidden-import=win32api ^
+ --hidden-import=win32con ^
+ --hidden-import=win32security ^
  --add-data "ui\styles.qss;ui" ^
  --add-data "icon.ico;." ^
+ --add-data ".env;." ^
  --workpath "%CACHE_DIR%\build_main" ^
  --distpath "dist" ^
  --name "%APP_NAME%" ^

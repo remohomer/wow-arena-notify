@@ -11,7 +11,7 @@ __pycache__/
 .idea/
 
 # Python build
-/dist/
+**/dist/
 /build/
 *.spec
 
@@ -40,3 +40,4 @@ ENV/
 # Firebase keys
 desktop_app/core/push/wow-arena-notify-firebase-adminsdk-*.json
 android_app/app/google-services.json
+desktop_app/core/firebase_credentials.enc

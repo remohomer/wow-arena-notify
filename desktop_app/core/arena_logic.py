@@ -1,3 +1,15 @@
+"""
+WoW Arena Notify – Arena Event Logic
+------------------------------------
+Main detection and event dispatch module.
+Handles screenshot-based triggers and sends events
+through:
+ - Cloud Function (HMAC-signed HTTPS via firebase_notify)
+ - Realtime Database mirror (arena_realtime)
+
+Now fully decoupled from user_token (uses pairing_id instead).
+"""
+
 import os
 import time
 import threading
@@ -7,15 +19,16 @@ from core.push.arena_realtime import send_arena_event
 from core.utils import safe_delete
 from core.logger import logger
 
+
 # ----------------------------------------------------------------------
 # 🌐 Global session state
 # ----------------------------------------------------------------------
 _last_event_id: str | None = None
-_last_event = {"type": None, "time": 0.0}      # 'arena_pop' / 'arena_stop'
+_last_event = {"type": None, "time": 0.0}
 _last_processed_file = {"name": "", "time": 0.0}
-_countdown_active = False                      # is countdown active after 'arena_pop'
+_countdown_active = False
 
-# 📊 Session stats (for clean end-of-session summary)
+# 📊 Session stats
 _stats = {
     "arena_pop": 0,
     "arena_stop": 0,
@@ -25,17 +38,16 @@ _stats = {
     "errors": 0,
 }
 
+
 # ----------------------------------------------------------------------
-# 🔎 Main screenshot analysis + de-duplication + time correction
+# 🔎 Screenshot processing
 # ----------------------------------------------------------------------
 def process_screenshot_event(file_path, cfg: dict, app_start_time: float = 0.0) -> str:
     """
-    Inspect a new screenshot and decide the event:
-      - returns 'arena_pop'  → sends FCM & RTDB (with -4s correction)
-      - returns 'arena_stop' → sends FCM & RTDB
-      - returns ''           → no action
-
-    NOTE: config is passed in; this module does NOT read/write config files.
+    Inspect new screenshot and detect:
+      - arena_pop (start)
+      - arena_stop (end)
+      - '' → no action
     """
     global _last_event, _last_processed_file, _countdown_active
 
@@ -48,18 +60,18 @@ def process_screenshot_event(file_path, cfg: dict, app_start_time: float = 0.0) 
         now = time.time()
         delta = now - modified_time
 
-        # 1) Ignore screenshots created before the app started
+        # Ignore screenshots before app start
         if app_start_time and modified_time < app_start_time:
             _stats["ignored_old"] += 1
             logger.debug(f"⏸ Ignored old screenshot {filename} (before app start).")
             return ""
 
-        # 2) Ignore stale files (>5s since mtime) to reduce system 'echoes'
+        # Ignore stale screenshots (>5s delay)
         if delta > 5:
             _stats["ignored_stale"] += 1
             return ""
 
-        # 3) De-duplication: same file within a short window (5s)
+        # Deduplicate same file within 5s
         if (
             _last_processed_file["name"] == filename
             and (now - _last_processed_file["time"]) < 5
@@ -69,9 +81,7 @@ def process_screenshot_event(file_path, cfg: dict, app_start_time: float = 0.0) 
             return ""
         _last_processed_file.update({"name": filename, "time": now})
 
-        # 4) Exactly two screenshots per arena:
-        #    if countdown is active after POP → the next screenshot is STOP
-        #    also, if POP happened <5s ago (grace) → treat as STOP
+        # If countdown already active → this must be arena_stop
         last_event_type = _last_event.get("type")
         last_event_time = _last_event.get("time", 0.0)
 
@@ -84,9 +94,9 @@ def process_screenshot_event(file_path, cfg: dict, app_start_time: float = 0.0) 
             logger.info(f"🏁 Detected arena start/end → arena_stop ({filename})")
             return "arena_stop"
 
-        # 5) Otherwise → treat as a fresh arena_pop (with -4s correction)
+        # Otherwise treat as a new arena_pop (with -4s correction)
         base = int(cfg.get("countdown_time", 40))
-        adjusted = max(base - 4, 1)  # ~3s addon delay + ~1s detection delay
+        adjusted = max(base - 4, 1)
         start_arena_event(adjusted, cfg)
         _last_event.update({"type": "arena_pop", "time": now})
         _stats["arena_pop"] += 1
@@ -100,37 +110,35 @@ def process_screenshot_event(file_path, cfg: dict, app_start_time: float = 0.0) 
 
 
 # ----------------------------------------------------------------------
-# 🚀 Send 'arena_pop' (FCM + RTDB) and mark countdown active
+# 🚀 Send 'arena_pop' (FCM + RTDB)
 # ----------------------------------------------------------------------
 def start_arena_event(seconds: int, cfg: dict) -> str:
     global _last_event_id, _countdown_active
 
-    user_token = cfg.get("fcm_token")
-    if not user_token:
-        logger.warning("⚠ No paired FCM token — skipping arena_pop.")
-        return ""
-
     _last_event_id = str(uuid.uuid4())
     _countdown_active = True
 
+    # pairing_id detection
+    pairing_id = cfg.get("pairing_id", "test_desktop")
+    logger.info(f"🎯 pairing_id użyty = {pairing_id}")
+
     try:
-        # Pass token & cfg explicitly; no config I/O inside senders
         success_fcm = send_fcm_message(
             event_type="arena_pop",
             seconds=seconds,
             event_id=_last_event_id,
-            user_token=user_token,
+            pairing_id=pairing_id,
             cfg=cfg,
         )
         payload = send_arena_event(
             event_type="arena_pop",
             duration_sec=seconds,
-            user_token=user_token,
+            user_token=pairing_id,  # RTDB mirror uses token-like key
             event_id=_last_event_id,
             cfg=cfg,
         )
         if success_fcm and payload:
-            logger.info(f"✅ arena_pop sent (eventId={_last_event_id})")
+            logger.info(f"✅ arena_pop sent successfully (eventId={_last_event_id})")
         else:
             logger.warning(
                 f"⚠ arena_pop partially sent (FCM={success_fcm}, RTDB={'OK' if payload else 'FAIL'})"
@@ -143,7 +151,7 @@ def start_arena_event(seconds: int, cfg: dict) -> str:
 
 
 # ----------------------------------------------------------------------
-# 🛑 Send 'arena_stop' (FCM + RTDB), protected against double-stop
+# 🛑 Send 'arena_stop' (FCM + RTDB)
 # ----------------------------------------------------------------------
 def stop_arena_event(cfg: dict):
     global _last_event_id, _countdown_active
@@ -152,33 +160,28 @@ def stop_arena_event(cfg: dict):
         logger.info("🧱 stop_arena_event ignored — countdown not active.")
         return
 
-    user_token = cfg.get("fcm_token")
-    if not user_token:
-        logger.warning("⚠ No paired FCM token — skipping arena_stop.")
-        _countdown_active = False
-        _last_event_id = None
-        return
-
-    event_id = _last_event_id or str(uuid.uuid4())
     _countdown_active = False
+    event_id = _last_event_id or str(uuid.uuid4())
+    pairing_id = cfg.get("pairing_id", "test_desktop")
+    logger.info(f"🎯 pairing_id użyty = {pairing_id}")
 
     try:
         success_fcm = send_fcm_message(
             event_type="arena_stop",
             seconds=0,
             event_id=event_id,
-            user_token=user_token,
+            pairing_id=pairing_id,
             cfg=cfg,
         )
         payload = send_arena_event(
             event_type="arena_stop",
             duration_sec=0,
-            user_token=user_token,
+            user_token=pairing_id,
             event_id=event_id,
             cfg=cfg,
         )
         if success_fcm and payload:
-            logger.info(f"🛑 arena_stop sent (eventId={event_id})")
+            logger.info(f"🛑 arena_stop sent successfully (eventId={event_id})")
         else:
             logger.warning(
                 f"⚠ arena_stop partially sent (FCM={success_fcm}, RTDB={'OK' if payload else 'FAIL'})"
@@ -190,7 +193,7 @@ def stop_arena_event(cfg: dict):
 
 
 # ----------------------------------------------------------------------
-# 🧹 Deferred deletion (avoid 'file in use' glitches)
+# 🧹 Deferred screenshot deletion
 # ----------------------------------------------------------------------
 def delete_screenshot_later(file_path):
     def _del():
@@ -198,14 +201,16 @@ def delete_screenshot_later(file_path):
             safe_delete(file_path)
         except Exception as e:
             logger.warning(f"⚠ Could not delete screenshot {file_path}: {e}")
+
     threading.Timer(0.5, _del).start()
 
 
 # ----------------------------------------------------------------------
-# 📈 Session stats helpers
+# 📈 Session stats
 # ----------------------------------------------------------------------
 def session_summary() -> dict:
     return dict(_stats)
+
 
 def session_summary_string() -> str:
     s = session_summary()

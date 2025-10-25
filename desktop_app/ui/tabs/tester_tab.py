@@ -39,7 +39,7 @@ class TesterTab(QWidget):
 
         self.time_input = QSpinBox()
         self.time_input.setRange(5, 120)
-        self.time_input.setValue(40)
+        self.time_input.setValue(5)
         self.time_input.setSuffix(" s")
         self.time_input.setAlignment(Qt.AlignCenter)
 
@@ -71,7 +71,6 @@ class TesterTab(QWidget):
         """Run full remote test cycle (arena_pop → arena_stop)."""
         seconds = self.time_input.value()
         self.current_event_id = str(uuid.uuid4())
-        user_token = self.cfg.get("fcm_token", "")
 
         logger.info(f"🧪 Starting full remote test ({seconds}s) id={self.current_event_id}")
         QMessageBox.information(
@@ -94,7 +93,7 @@ class TesterTab(QWidget):
 
         # Step 2: Send POP
         try:
-            send_fcm_message("arena_pop", seconds, user_token=user_token, cfg=self.cfg)
+            send_fcm_message("arena_pop", seconds, cfg=self.cfg)
             logger.info("🟢 arena_pop sent successfully")
         except Exception as e:
             logger.error(f"❌ Failed to send arena_pop: {e}")
@@ -113,7 +112,7 @@ class TesterTab(QWidget):
     def finish_full_test(self, user_token):
         """Send arena_stop after countdown time elapsed."""
         try:
-            send_fcm_message("arena_stop", 0, user_token=user_token, cfg=self.cfg)
+            send_fcm_message("arena_stop", 0, cfg=self.cfg)
             logger.info("🛑 arena_stop sent (auto after test)")
             QMessageBox.information(self, "Full Test", "✅ Auto arena_stop sent — test complete!")
         except Exception as e:
@@ -128,7 +127,6 @@ class TesterTab(QWidget):
 
     def run_debug_timing_test(self):
         """Run deep timing comparison with offset diff."""
-        user_token = self.cfg.get("fcm_token", "")
         seconds = self.time_input.value()
         test_id = str(uuid.uuid4())
 
@@ -146,7 +144,7 @@ class TesterTab(QWidget):
         logger.info("───────────────────────────────────────────────")
 
         try:
-            send_fcm_message("arena_pop", seconds, user_token=user_token, cfg=self.cfg)
+            send_fcm_message("arena_pop", seconds, cfg=self.cfg)
             logger.info("🟢 Debug arena_pop sent (offset diff mode)")
         except Exception as e:
             logger.error(f"❌ Failed to send debug arena_pop: {e}")
@@ -155,7 +153,7 @@ class TesterTab(QWidget):
         def delayed_stop():
             time.sleep(seconds + 5)
             try:
-                send_fcm_message("arena_stop", 0, user_token=user_token, cfg=self.cfg)
+                send_fcm_message("arena_stop", 0, cfg=self.cfg)
                 logger.info("🛑 Debug arena_stop sent (auto)")
                 logger.info("✅ Debug test finished successfully.")
             except Exception as e:
