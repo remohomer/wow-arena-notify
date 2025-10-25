@@ -1,0 +1,76 @@
+/* === GLOBAL === */
+QWidget {
+    background-color: #1e1e1e;
+    color: #f0f0f0;
+    font-family: "Segoe UI";
+}
+
+/* === BUTTONS === */
+QPushButton {
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #f0f0f0;
+    min-width: 120px;
+}
+QPushButton:hover {
+    background-color: #3a3a3a;
+}
+QPushButton:pressed {
+    background-color: #505050;
+}
+
+/* === SPINBOX === */
+QSpinBox {
+    min-width: 100px;
+    min-height: 28px;
+}
+
+/* === PROGRESS BAR === */
+QProgressBar {
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #2b2b2b;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+}
+QProgressBar::chunk {
+    border-radius: 5px;
+    background-color: #4caf50;
+}
+
+/* === STATUS LABEL === */
+QLabel#status {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 6px;
+}
+
+/* === COLOR TAGS === */
+@define-color status-green #4cff4c;
+@define-color status-red #ff5555;
+@define-color status-yellow #ffaa00;
+
+/* === TABS === */
+QTabWidget::pane {
+    border: 1px solid #333;
+    background: #1e1e1e;
+    border-radius: 6px;
+}
+
+QTabBar::tab {
+    background: #2b2b2b;
+    color: #ddd;
+    padding: 6px 14px;
+    border: 1px solid #444;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+QTabBar::tab:selected {
+    background: #3a3a3a;
+    color: #4cff4c;
+}

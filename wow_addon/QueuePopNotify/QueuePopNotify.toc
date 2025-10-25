@@ -1,0 +1,8 @@
+## Interface: 30300
+## Title: QueuePopNotify
+## Notes: Notify via screenshot when arena/BG queue pops
+## Notes_PL: Dodatek zapisuje screen po pojawieniu się powiadomienia zapisu na arene/BG
+## Author: Remoh
+## eMail: rrem0h@gmail.com
+## DefaultState: Enabled
+QueuePopNotify.lua

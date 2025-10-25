@@ -1,0 +1,42 @@
+# Global
+__pycache__/
+*.log
+*.tmp
+*.bak
+*.pyc
+.DS_Store
+
+# VSCode
+.vscode/
+.idea/
+
+# Python build
+/dist/
+/build/
+*.spec
+
+# PyInstaller caches
+desktop_app/.pyinstaller_cache/
+
+# Android Studio
+/android_app/.gradle/
+/android_app/.idea/
+/android_app/build/
+/android_app/app/build/
+/android_app/app/release/
+/android_app/app/debug/
+/android_app/local.properties
+
+# WoW Addon compiled files
+/wow_addon/QueuePopNotify/*.bak
+/wow_addon/QueuePopNotify/*.zip
+
+# Virtual environments (jeśli tworzysz wirtualne środowisko)
+venv/
+.env/
+ENV/
+.venv/
+
+# Firebase keys
+desktop_app/core/push/wow-arena-notify-firebase-adminsdk-*.json
+android_app/app/google-services.json
