@@ -1,3 +1,8 @@
+# core/time_sync.py — v2 (2025-10-26)
+# ✅ Uses CredentialsProvider.get_rtdb_url()
+# ✅ Graceful fallback to local clock
+# ✅ Clean logging
+
 import time
 import requests
 from core.logger import logger
@@ -10,12 +15,12 @@ _last_sync_time = 0
 
 def get_firebase_server_time(cfg: dict = None) -> int:
     """
-    Return current server time in ms.
-    If service account or RTDB URL is missing, uses local time.
+    Return current Firebase server time in ms.
+    Falls back to local clock if RTDB unavailable.
     """
     try:
         provider = CredentialsProvider()
-        rtdb_url = provider.RTDB_URL
+        rtdb_url = provider.get_rtdb_url()
         if not rtdb_url:
             logger.warning("⚠️ No RTDB URL configured → using local clock.")
             return int(time.time() * 1000)
@@ -50,7 +55,7 @@ def get_server_offset(cfg: dict = None) -> int:
 
     try:
         provider = CredentialsProvider()
-        rtdb_url = provider.RTDB_URL
+        rtdb_url = provider.get_rtdb_url()
         if not rtdb_url:
             logger.warning("⚠️ No RTDB URL set → offset = 0 ms")
             return 0

@@ -1,4 +1,4 @@
-// test_hmac_pair.mjs
+// functions/test_hmac_pair.mjs
 import crypto from "crypto";
 
 // ten sam klucz

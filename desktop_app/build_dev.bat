@@ -33,6 +33,11 @@ pyinstaller ^
  --hidden-import=win32api ^
  --hidden-import=win32con ^
  --hidden-import=win32security ^
+ --hidden-import=pyperclip ^
+ --exclude-module PyQt5 ^
+ --exclude-module PyQt5.QtCore ^
+ --exclude-module PyQt5.QtGui ^
+ --exclude-module PyQt5.QtWidgets ^
  --workpath "%CACHE_DIR%\build_dev" ^
  --distpath "dist" ^
  "%MAIN_FILE%"

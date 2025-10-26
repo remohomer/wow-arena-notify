@@ -1,3 +1,4 @@
+# core/arena_logic.py — v3 (2025-10-26)
 """
 WoW Arena Notify – Arena Event Logic
 ------------------------------------
@@ -18,6 +19,7 @@ from core.firebase_notify import send_fcm_message
 from core.push.arena_realtime import send_arena_event
 from core.utils import safe_delete
 from core.logger import logger
+from core.credentials_provider import CredentialsProvider
 
 
 # ----------------------------------------------------------------------
@@ -118,11 +120,12 @@ def start_arena_event(seconds: int, cfg: dict) -> str:
     _last_event_id = str(uuid.uuid4())
     _countdown_active = True
 
-    # pairing_id detection
-    pairing_id = cfg.get("pairing_id", "test_desktop")
-    logger.info(f"🎯 pairing_id użyty = {pairing_id}")
+    # Pairing ID (always safe to fetch from config or default)
+    pairing_id = cfg.get("pairing_id") or "test_desktop"
+    logger.info(f"🎯 pairing_id used = {pairing_id}")
 
     try:
+        # Send to Cloud Function (pushArena)
         success_fcm = send_fcm_message(
             event_type="arena_pop",
             seconds=seconds,
@@ -130,13 +133,16 @@ def start_arena_event(seconds: int, cfg: dict) -> str:
             pairing_id=pairing_id,
             cfg=cfg,
         )
+
+        # Send to RTDB mirror (arena_realtime)
         payload = send_arena_event(
             event_type="arena_pop",
             duration_sec=seconds,
-            user_token=pairing_id,  # RTDB mirror uses token-like key
+            pairing_id=pairing_id,
             event_id=_last_event_id,
             cfg=cfg,
         )
+
         if success_fcm and payload:
             logger.info(f"✅ arena_pop sent successfully (eventId={_last_event_id})")
         else:
@@ -144,6 +150,7 @@ def start_arena_event(seconds: int, cfg: dict) -> str:
                 f"⚠ arena_pop partially sent (FCM={success_fcm}, RTDB={'OK' if payload else 'FAIL'})"
             )
         return _last_event_id
+
     except Exception as e:
         _stats["errors"] += 1
         logger.error(f"❌ Failed to send arena_pop: {e}")
@@ -162,8 +169,8 @@ def stop_arena_event(cfg: dict):
 
     _countdown_active = False
     event_id = _last_event_id or str(uuid.uuid4())
-    pairing_id = cfg.get("pairing_id", "test_desktop")
-    logger.info(f"🎯 pairing_id użyty = {pairing_id}")
+    pairing_id = cfg.get("pairing_id") or "test_desktop"
+    logger.info(f"🎯 pairing_id used = {pairing_id}")
 
     try:
         success_fcm = send_fcm_message(
@@ -176,7 +183,7 @@ def stop_arena_event(cfg: dict):
         payload = send_arena_event(
             event_type="arena_stop",
             duration_sec=0,
-            user_token=pairing_id,
+            pairing_id=pairing_id,
             event_id=event_id,
             cfg=cfg,
         )

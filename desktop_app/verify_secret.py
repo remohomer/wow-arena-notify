@@ -1,3 +1,4 @@
+# verify_secret.py
 import hmac, hashlib
 
 secret = "73b5abc506edd15dbae2a0fc1569cdbf8c391e4e59ebd8f2f8c5ac418581dced"

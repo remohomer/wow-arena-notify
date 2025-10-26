@@ -1,13 +1,18 @@
+# ui/tabs/tester_tab.py — v3 (2025-10-26)
+# ✅ No Firebase Admin SDK dependency
+# ✅ Uses CredentialsProvider + REST time sync
+# ✅ Fix: removed undefined user_token
+# ✅ Full compatibility with refactored backend
+
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QSpinBox, QMessageBox
 from PySide6.QtCore import Qt, QTimer
 from core.firebase_notify import send_fcm_message
 from core.logger import logger
-from core.time_sync import get_server_offset
+from core.time_sync import get_server_offset, get_firebase_server_time
+from core.credentials_provider import CredentialsProvider
 import time
 import uuid
 import threading
-import firebase_admin
-from firebase_admin import credentials, db
 
 
 class TesterTab(QWidget):
@@ -19,6 +24,9 @@ class TesterTab(QWidget):
         self.current_event_id = None
         self.init_ui()
 
+    # -------------------------------------------------------------------------
+    # UI
+    # -------------------------------------------------------------------------
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 30, 30, 30)
@@ -66,7 +74,6 @@ class TesterTab(QWidget):
     # -------------------------------------------------------------------------
     # FULL REMOTE TEST
     # -------------------------------------------------------------------------
-
     def run_full_test(self):
         """Run full remote test cycle (arena_pop → arena_stop)."""
         seconds = self.time_input.value()
@@ -77,7 +84,7 @@ class TesterTab(QWidget):
             self, "Full Test", f"🚀 Remote test started!\nArena pop → auto stop after {seconds}s."
         )
 
-        # Step 1: Timing data
+        # Timing diagnostic
         offset_ms = get_server_offset(self.cfg)
         local_now = int(time.time() * 1000)
         server_now = local_now + offset_ms
@@ -91,7 +98,6 @@ class TesterTab(QWidget):
         logger.info(f"  🎯 endsAt (server-based): {ends_at}")
         logger.info("────────────────────────────────────────────────────────────")
 
-        # Step 2: Send POP
         try:
             send_fcm_message("arena_pop", seconds, cfg=self.cfg)
             logger.info("🟢 arena_pop sent successfully")
@@ -100,16 +106,16 @@ class TesterTab(QWidget):
             QMessageBox.warning(self, "Error", f"Failed to send arena_pop:\n{e}")
             return
 
-        # Step 3: Auto STOP after countdown
+        # Auto-stop after countdown
         if self.test_timer:
             self.test_timer.stop()
 
         self.test_timer = QTimer(self)
         self.test_timer.setSingleShot(True)
-        self.test_timer.timeout.connect(lambda: self.finish_full_test(user_token))
+        self.test_timer.timeout.connect(self.finish_full_test)
         self.test_timer.start(seconds * 1000)
 
-    def finish_full_test(self, user_token):
+    def finish_full_test(self):
         """Send arena_stop after countdown time elapsed."""
         try:
             send_fcm_message("arena_stop", 0, cfg=self.cfg)
@@ -124,7 +130,6 @@ class TesterTab(QWidget):
     # -------------------------------------------------------------------------
     # DEBUG TIMING TEST
     # -------------------------------------------------------------------------
-
     def run_debug_timing_test(self):
         """Run deep timing comparison with offset diff."""
         seconds = self.time_input.value()
@@ -164,29 +169,27 @@ class TesterTab(QWidget):
     # -------------------------------------------------------------------------
     # CLOCK SYNC
     # -------------------------------------------------------------------------
-
     def check_clock_sync(self):
         """Check local vs Firebase server time offset."""
         try:
-            sa_path = self.cfg.get("firebase_sa_path", "")
-            rtdb_url = self.cfg.get("rtdb_url", "")
-            if not sa_path or not rtdb_url:
-                raise ValueError("Missing Firebase credentials or RTDB URL in config.")
-
-            if not firebase_admin._apps:
-                cred = credentials.Certificate(sa_path)
-                firebase_admin.initialize_app(cred, {"databaseURL": rtdb_url})
-
-            # Instead of .info path (not supported in Admin SDK), use time_sync offset
+            provider = CredentialsProvider()
+            rtdb_url = provider.get_rtdb_url()
             offset_ms = get_server_offset(self.cfg)
             local_time = int(time.time() * 1000)
             server_time = local_time + offset_ms
 
-            logger.info(f"🕒 Clock sync check: local={local_time}, offset={offset_ms}, server≈{server_time}")
+            logger.info("───────────────────────────────────────────────")
+            logger.info(f"🕒 Clock sync check ({rtdb_url})")
+            logger.info(f"  Local time: {local_time}")
+            logger.info(f"  Offset: {offset_ms} ms")
+            logger.info(f"  Server ≈ {server_time}")
+            logger.info("───────────────────────────────────────────────")
+
             QMessageBox.information(
                 self,
                 "Clock Sync Check",
                 f"🕒 Firebase Clock Sync:\n\n"
+                f"RTDB URL: {rtdb_url}\n"
                 f"Local time: {local_time}\n"
                 f"Offset: {offset_ms} ms\n"
                 f"Server time ≈ {server_time}\n\n"

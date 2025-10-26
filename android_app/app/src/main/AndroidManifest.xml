@@ -24,6 +24,21 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.WoWArenaNotify"
         tools:targetApi="31">
+
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <!-- Po pełnym starcie systemu -->
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <!-- Gdy urządzenie jeszcze zablokowane (jeśli wspierasz Direct Boot) -->
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <!-- Po aktualizacji aplikacji -->
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- 🔹 Aktywność skanera ZXing -->
         <activity
             android:name="com.journeyapps.barcodescanner.CaptureActivity"

@@ -1,43 +1,100 @@
-# Global
+# ─────────────────────────────
+# 🌍 Global ignore
+# ─────────────────────────────
 __pycache__/
+**/__pycache__/
 *.log
 *.tmp
 *.bak
 *.pyc
+*.pyo
+*.pyd
 .DS_Store
+Thumbs.db
 
-# VSCode
+# ─────────────────────────────
+# 🧠 IDE & systemowe
+# ─────────────────────────────
 .vscode/
 .idea/
+*.iml
+*.swp
+*.swo
 
-# Python build
+# ─────────────────────────────
+# 🐍 Python / PyInstaller
+# ─────────────────────────────
 **/dist/
-/build/
+**/build/
 *.spec
-
-# PyInstaller caches
+*.egg-info/
+*.eggs/
 desktop_app/.pyinstaller_cache/
-
-# Android Studio
-/android_app/.gradle/
-/android_app/.idea/
-/android_app/build/
-/android_app/app/build/
-/android_app/app/release/
-/android_app/app/debug/
-/android_app/local.properties
-
-# WoW Addon compiled files
-/wow_addon/QueuePopNotify/*.bak
-/wow_addon/QueuePopNotify/*.zip
-
-# Virtual environments (jeśli tworzysz wirtualne środowisko)
 venv/
-.env/
-ENV/
 .venv/
+ENV/
+env/
+.env
+.env.*
+test_env
+test_env.py
+verify_secret.py
 
-# Firebase keys
+# ─────────────────────────────
+# 💾 Firebase / sekrety / klucze
+# ─────────────────────────────
+# Firebase keys (admin SDK, JSON, encrypted)
 desktop_app/core/push/wow-arena-notify-firebase-adminsdk-*.json
-android_app/app/google-services.json
 desktop_app/core/firebase_credentials.enc
+desktop_app/.firebaserc
+desktop_app/firebase.json
+
+# Secret environment
+desktop_app/.env
+desktop_app/core/.env
+*.key
+*.pem
+*.crt
+
+# ─────────────────────────────
+# ☁️ Firebase Functions (backend)
+# ─────────────────────────────
+desktop_app/functions/
+!desktop_app/functions/README.md  # ← jeśli chcesz zostawić tylko dokumentację
+
+# ─────────────────────────────
+# 🤖 Android Studio
+# ─────────────────────────────
+android_app/.gradle/
+android_app/.idea/
+android_app/local.properties
+android_app/caches/
+android_app/app/build/
+android_app/build/
+android_app/app/release/
+android_app/app/debug/
+android_app/.externalNativeBuild/
+
+# Firebase key dla Androida
+android_app/app/google-services.json
+
+# Gradle wrapper cache
+android_app/gradle/wrapper/gradle-wrapper.jar
+.gradle/
+.gradle/
+
+# ─────────────────────────────
+# 🎮 WoW Addon buildy
+# ─────────────────────────────
+wow_addon/QueuePopNotify/*.bak
+wow_addon/QueuePopNotify/*.zip
+
+# ─────────────────────────────
+# 🧪 Testy / sandboxy
+# ─────────────────────────────
+desktop_app/functions/test_*/
+desktop_app/test_*
+*_test.py
+tests/
+temp/
+tmp/

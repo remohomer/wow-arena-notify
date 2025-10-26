@@ -59,6 +59,11 @@ set FLAGS=--noconfirm --noupx --onefile --windowed ^
  --hidden-import=win32api ^
  --hidden-import=win32con ^
  --hidden-import=win32security ^
+ --hidden-import=pyperclip ^
+ --exclude-module PyQt5 ^
+ --exclude-module PyQt5.QtCore ^
+ --exclude-module PyQt5.QtGui ^
+ --exclude-module PyQt5.QtWidgets ^
  --add-data "ui\styles.qss;ui" ^
  --add-data "icon.ico;." ^
  --add-data ".env;." ^

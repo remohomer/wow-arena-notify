@@ -1,73 +1,66 @@
-# core/credentials_provider.py
+# core/credentials_provider.py — v2 (2025-10-26)
+# ✅ Centralized, secure configuration provider
+# ✅ No Firebase service JSON dependency
+# ✅ Loads all from .env or system environment
+# ✅ Shared by all desktop modules
+
 import os
-import json
 from dotenv import load_dotenv
 from core.logger import logger
 
 
 class CredentialsProvider:
     """
-    Provides access to environment-level configuration and credentials
-    used by WoW Arena Notify Desktop App.
-
-    Loads configuration from `.env` file or system environment:
+    Central configuration & credential access for WoW Arena Notify (Desktop).
+    -------------------------------------------------------------------------
+    Loads values from `.env` or system environment:
       - WOW_SECRET (shared HMAC secret)
-      - FIREBASE_SERVICE_ACCOUNT (path or inline JSON)
-      - RTDB_URL (Firebase Realtime Database URL)
+      - RTDB_URL   (Firebase Realtime Database URL)
+      - PAIR_DEVICE_URL (Cloud Function endpoint for pairing)
+      - PUSH_ARENA_URL  (Cloud Function endpoint for event push)
     """
 
+    DEFAULT_RTDB_URL = "https://wow-arena-notify-default-rtdb.europe-west1.firebasedatabase.app/"
+    DEFAULT_PAIR_DEVICE_URL = "https://us-central1-wow-arena-notify.cloudfunctions.net/pairDevice"
+    DEFAULT_PUSH_ARENA_URL = "https://us-central1-wow-arena-notify.cloudfunctions.net/pushArena"
+
     def __init__(self):
-        # Locate and load .env file
+        # Load .env if available
         env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
         if os.path.exists(env_path):
             load_dotenv(env_path)
-            logger.info(f"🔐 Loaded environment variables from {env_path}")
+            logger.info(f"🌍 Loaded environment variables from {env_path}")
         else:
-            logger.warning("⚠️ .env file not found; expecting env vars in system environment.")
+            logger.warning("⚠️ .env file not found; relying on system environment variables.")
 
-        # Load key environment variables
-        self.WOW_SECRET = os.getenv("WOW_SECRET")
-        self.RTDB_URL = os.getenv(
-            "RTDB_URL",
-            "https://wow-arena-notify-default-rtdb.europe-west1.firebasedatabase.app/",
-        )
-        self.SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT")
+        # Core values
+        self.WOW_SECRET = os.getenv("WOW_SECRET", "").strip()
+        self.RTDB_URL = os.getenv("RTDB_URL", self.DEFAULT_RTDB_URL).strip()
+        self.PAIR_DEVICE_URL = os.getenv("PAIR_DEVICE_URL", self.DEFAULT_PAIR_DEVICE_URL).strip()
+        self.PUSH_ARENA_URL = os.getenv("PUSH_ARENA_URL", self.DEFAULT_PUSH_ARENA_URL).strip()
 
-        # Validate presence
+        # Validation
         if not self.WOW_SECRET:
-            logger.error("❌ Missing WOW_SECRET in environment.")
+            logger.error("❌ Missing WOW_SECRET — HMAC verification may fail.")
         if not self.RTDB_URL:
-            logger.error("❌ Missing RTDB_URL in environment.")
+            logger.error("❌ Missing RTDB_URL — RTDB connection may fail.")
 
-    # --- HMAC Secret ---
-    def get_env_secret(self) -> str:
-        """
-        Returns the global WOW_SECRET used for HMAC signing.
-        """
-        return self.WOW_SECRET
+    # --- Accessors ---
+    def get_secret(self) -> str:
+        """Return the sanitized WOW_SECRET (no quotes or newlines)."""
+        clean = self.WOW_SECRET.strip().strip('"').strip("'").replace("\r", "")
+        if clean != self.WOW_SECRET:
+            logger.info("🔑 WOW_SECRET normalized (quotes/whitespace removed).")
+        return clean
 
-    # --- Firebase credentials ---
-    def get_credentials(self) -> dict:
-        """
-        Returns Firebase Admin SDK credentials as dict.
+    def get_rtdb_url(self) -> str:
+        """Return Firebase RTDB URL."""
+        return self.RTDB_URL
 
-        If FIREBASE_SERVICE_ACCOUNT points to a JSON file → loads it.
-        If FIREBASE_SERVICE_ACCOUNT contains JSON text → parses it directly.
-        """
-        if not self.SERVICE_ACCOUNT_PATH:
-            logger.warning("⚠️ FIREBASE_SERVICE_ACCOUNT not defined; using empty creds.")
-            return {}
+    def get_pair_device_url(self) -> str:
+        """Return Cloud Function URL for device pairing."""
+        return self.PAIR_DEVICE_URL
 
-        try:
-            if os.path.exists(self.SERVICE_ACCOUNT_PATH):
-                with open(self.SERVICE_ACCOUNT_PATH, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    logger.info("✅ Loaded Firebase credentials from file.")
-                    return data
-            else:
-                data = json.loads(self.SERVICE_ACCOUNT_PATH)
-                logger.info("✅ Loaded Firebase credentials from inline JSON.")
-                return data
-        except Exception as e:
-            logger.error(f"❌ Failed to load Firebase credentials: {e}")
-            return {}
+    def get_push_arena_url(self) -> str:
+        """Return Cloud Function URL for event pushes."""
+        return self.PUSH_ARENA_URL

@@ -1,7 +1,14 @@
+# ui/main_window.py — v7 (2025-10-27)
+# ✅ Added "Pairing" and "Settings" tabs
+# ✅ Removed obsolete background checkbox logic
+# ✅ Preserves all tray + listener logic
+
 import sys
 import time
 from pathlib import Path
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QPlainTextEdit, QApplication, QSystemTrayIcon, QMenu, QMessageBox
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QTabWidget, QApplication, QSystemTrayIcon, QMenu, QMessageBox
+)
 from PySide6.QtGui import QIcon, QAction
 from PySide6.QtCore import QTimer, Qt
 
@@ -12,8 +19,10 @@ from core.logger import logger
 from core import arena_logic
 
 from ui.tabs.home_tab import HomeTab
-from ui.tabs.logs_tab import LogsTab          # zakładam, że ten plik już masz
-from ui.tabs.tester_tab import TesterTab      # opcjonalny tester
+from ui.tabs.logs_tab import LogsTab
+from ui.tabs.tester_tab import TesterTab
+from ui.tabs.pairing_tab import PairingTab
+from ui.tabs.settings_tab import SettingsTab
 
 
 class MainWindow(QWidget):
@@ -23,7 +32,9 @@ class MainWindow(QWidget):
         self.setWindowTitle("WoW Arena Notify")
         self.setFixedSize(480, 460)
 
-        # App icon
+        # -------------------------------
+        # Icon
+        # -------------------------------
         icon_path = None
         try:
             if hasattr(sys, "_MEIPASS"):
@@ -45,7 +56,9 @@ class MainWindow(QWidget):
         except Exception as e:
             logger.warning(f"⚠️ Failed to set window icon: {e}")
 
-        # --- App state ---
+        # -------------------------------
+        # App state
+        # -------------------------------
         self.cfg = load_config()
         self.game_folder = self.cfg.get("game_folder", "")
         self.countdown_value = 0
@@ -56,50 +69,62 @@ class MainWindow(QWidget):
         self.high_watermark = 0
         self.app_start_time = time.time()
 
-        # Lightweight UI dedup safeguard
         self._recent_files = {}
         self._cooldown_until = 0
 
-        # --- Timers ---
+        # -------------------------------
+        # Timers
+        # -------------------------------
         self.timer = QTimer()
         self.timer.timeout.connect(self.check_screenshots)
         self.countdown_timer = None
         self.pulse_timer = QTimer()
         self.pulse_timer.timeout.connect(self.animate_status)
 
-        # --- Tabs ---
+        # -------------------------------
+        # Tabs
+        # -------------------------------
         self.tabs = QTabWidget(self)
         self.home_tab = HomeTab(self, self.cfg)
-        self.logs_tab = LogsTab(self)  # ma w środku QPlainTextEdit i podpina logger
-        self.tester_tab = TesterTab(self, self.cfg)  # jeśli masz tester jako zakładkę
+        self.pairing_tab = PairingTab(self)
+        self.logs_tab = LogsTab(self)
+        self.tester_tab = TesterTab(self, self.cfg)
+        self.settings_tab = SettingsTab(self)
 
         self.tabs.addTab(self.home_tab, "🏠 Home")
+        self.tabs.addTab(self.pairing_tab, "🔗 Pairing")
         self.tabs.addTab(self.logs_tab, "🧾 Logs")
         self.tabs.addTab(self.tester_tab, "🧪 Tester")
+        self.tabs.addTab(self.settings_tab, "⚙️ Settings")
 
         root = QVBoxLayout(self)
         root.addWidget(self.tabs)
 
-        # sygnał Start/Stop z zakładki Home
+        # --- Signals ---
         self.home_tab.toggleRequested.connect(self.toggle_listening)
 
         self.load_styles()
 
-        # WoW folder – jeśli brak, poproś użytkownika
+        # -------------------------------
+        # WoW folder check
+        # -------------------------------
         if not self.game_folder:
-            from PySide6.QtWidgets import QFileDialog, QMessageBox
-            QMessageBox.information(self, "Select game folder",
-                                    "Please select your World of Warcraft folder.")
+            from PySide6.QtWidgets import QFileDialog
+            QMessageBox.information(
+                self, "Select game folder",
+                "Please select your World of Warcraft folder."
+            )
             folder = QFileDialog.getExistingDirectory(self, "Select your World of Warcraft folder")
             if folder:
                 self.game_folder = folder
                 self.cfg["game_folder"] = folder
                 save_config(self.cfg)
-                self.home_tab.folder_label.setText(f"Game folder: {folder}")
                 _, self.last_screenshot_time = get_latest_screenshot_info(self.game_folder)
                 self.high_watermark = self.last_screenshot_time or 0
 
+        # -------------------------------
         # PrintScreen listener
+        # -------------------------------
         self.print_listener = PrintScreenListener()
 
         # Start + tray
@@ -127,7 +152,7 @@ class MainWindow(QWidget):
             logger.warning(f"⚠ Could not load style: {e}")
 
     # -------------------------------
-    # Start/Stop
+    # Listener control
     # -------------------------------
     def start_listening(self):
         self.app_start_time = time.time()
@@ -181,7 +206,6 @@ class MainWindow(QWidget):
         if latest_time < self.app_start_time or latest_time <= self.high_watermark:
             return
 
-        # UI debouncing
         try:
             size = latest_path.stat().st_size
             key = str(latest_path)
@@ -211,7 +235,7 @@ class MainWindow(QWidget):
             if result == "arena_pop":
                 logger.info("🟢 Queue-pop detected → starting countdown.")
                 self.home_tab.set_status("⚔️ Arena popup detected!", "#ffaa00")
-                adjusted = max(int(self.home_tab.time_input.value()) - 4, 1)
+                adjusted = max(int(self.cfg.get("countdown_time", 40)) - 4, 1)
                 self.start_countdown(adjusted)
 
             elif result == "arena_stop":
@@ -261,7 +285,7 @@ class MainWindow(QWidget):
         logger.info("🛑 Countdown stopped.")
 
     # -------------------------------
-    # Tray
+    # Tray handling
     # -------------------------------
     def init_tray_icon(self):
         try:
@@ -305,8 +329,6 @@ class MainWindow(QWidget):
         if reason == QSystemTrayIcon.Trigger:
             self.restore_from_tray()
 
-    from PySide6.QtWidgets import QMessageBox
-
     def closeEvent(self, event):
         """Ask user whether to exit or minimize to tray."""
         msg = QMessageBox(self)
@@ -320,7 +342,7 @@ class MainWindow(QWidget):
 
         result = msg.exec()
 
-        if result == QMessageBox.No:  # minimize
+        if result == QMessageBox.No:
             event.ignore()
             self.hide()
             try:
@@ -334,12 +356,11 @@ class MainWindow(QWidget):
             except Exception:
                 pass
             logger.info("💤 App minimized to tray by user choice.")
-        elif result == QMessageBox.Yes:  # exit
+        elif result == QMessageBox.Yes:
             event.accept()
             self.quit_app()
-        else:  # cancel
+        else:
             event.ignore()
-
 
     def restore_from_tray(self):
         self.showNormal()
@@ -363,3 +384,4 @@ class MainWindow(QWidget):
         except Exception:
             pass
         QApplication.quit()
+

@@ -14,12 +14,43 @@ QPushButton {
     font-size: 13px;
     color: #f0f0f0;
     min-width: 120px;
+    font-weight: 600;
+    transition: all 0.2s ease;
 }
 QPushButton:hover {
     background-color: #3a3a3a;
+    border-color: #666;
 }
 QPushButton:pressed {
     background-color: #505050;
+}
+
+/* === MAIN BUTTON (Start/Stop) === */
+QPushButton#mainButton {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    font-weight: bold;
+    min-width: 140px;
+}
+QPushButton#mainButton:hover {
+    background-color: #5ec75e;
+}
+QPushButton#mainButton:pressed {
+    background-color: #3d8e41;
+}
+
+/* === SECONDARY BUTTON (How it works) === */
+QPushButton#secondaryButton {
+    background-color: #2e7dba;
+    color: white;
+    border: none;
+}
+QPushButton#secondaryButton:hover {
+    background-color: #3b94dd;
+}
+QPushButton#secondaryButton:pressed {
+    background-color: #256699;
 }
 
 /* === SPINBOX === */
@@ -31,15 +62,24 @@ QSpinBox {
 /* === PROGRESS BAR === */
 QProgressBar {
     border: 1px solid #555;
-    border-radius: 5px;
+    border-radius: 6px;
     background-color: #2b2b2b;
     color: white;
     text-align: center;
     font-weight: bold;
+    height: 22px;
 }
+
+/* 🟢 Dynamic gradient for countdown:
+   full → green, middle → yellow, end → red  */
 QProgressBar::chunk {
-    border-radius: 5px;
-    background-color: #4caf50;
+    border-radius: 6px;
+    background-color: qlineargradient(
+        spread:pad, x1:0, y1:0, x2:1, y2:0,
+        stop:0 #4cff4c,
+        stop:0.5 #ffaa00,
+        stop:1 #ff4444
+    );
 }
 
 /* === STATUS LABEL === */
@@ -47,6 +87,7 @@ QLabel#status {
     font-size: 15px;
     font-weight: 600;
     padding: 6px;
+    text-align: center;
 }
 
 /* === COLOR TAGS === */
@@ -73,4 +114,16 @@ QTabBar::tab {
 QTabBar::tab:selected {
     background: #3a3a3a;
     color: #4cff4c;
+    border-bottom: 1px solid #3a3a3a;
+}
+
+/* === SPACERS / LAYOUT === */
+QHBoxLayout, QVBoxLayout {
+    spacing: 12px;
+}
+
+/* === MESSAGE BOXES === */
+QMessageBox {
+    background-color: #2b2b2b;
+    color: #f0f0f0;
 }
