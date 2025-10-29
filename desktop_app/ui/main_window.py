@@ -102,6 +102,7 @@ class MainWindow(QWidget):
 
         # --- Signals ---
         self.home_tab.toggleRequested.connect(self.toggle_listening)
+        self.home_tab.resetRequested.connect(self.handle_reset)
 
         self.load_styles()
 
@@ -269,11 +270,33 @@ class MainWindow(QWidget):
     def update_progress(self):
         if not self.is_countdown_active:
             return
+
         current = self.home_tab.progress.value() + 1
         self.home_tab.update_countdown_ui(current)
+
         if current >= self.home_tab.progress.maximum():
+            # Stop timer
             self.stop_countdown()
-            self.home_tab.set_status("⌛ Countdown finished!", "#ff0000")
+            self.home_tab.set_status("⚔️ The battle has begun.", "#ff0000")
+
+            # 🛑 Send arena_stop normally (simulate entering arena)
+            try:
+                from core import arena_logic
+                arena_logic.stop_arena_event(self.cfg)
+                logger.info("🛑 arena_stop triggered automatically after countdown timeout.")
+            except Exception as e:
+                logger.error(f"⚠️ Failed to trigger arena_stop after countdown: {e}")
+
+            # ⏳ After short delay, restore to listening state
+            QTimer.singleShot(2000, self.restore_listening_status)
+
+
+    def restore_listening_status(self):
+        """Restore 'listening...' state after countdown naturally ends."""
+        if self.is_running and not self.is_countdown_active:
+            self.home_tab.set_listening(True)
+            logger.info("🔁 Restored listening state after countdown finished.")
+
 
     def stop_countdown(self):
         if self.countdown_timer:
@@ -282,7 +305,7 @@ class MainWindow(QWidget):
         self.is_countdown_active = False
         self.home_tab.stop_countdown_ui(reset_status_to_listening=True)
         self.app_start_time = time.time()
-        logger.info("🛑 Countdown stopped.")
+        logger.info("⚔️ The battle has begun.")
 
     # -------------------------------
     # Tray handling
@@ -384,4 +407,11 @@ class MainWindow(QWidget):
         except Exception:
             pass
         QApplication.quit()
+
+    def handle_reset(self):
+        logger.info("🔄 Reset requested manually")
+        self.stop_countdown()  # zatrzymuje timer i progress
+        self.home_tab.reset_ui()  # UI -> Waiting for arena
+        self.app_start_time = time.time()  # ignorujemy stare screenshoty
+        self.high_watermark = self.last_screenshot_time or 0  # reset watermark    
 

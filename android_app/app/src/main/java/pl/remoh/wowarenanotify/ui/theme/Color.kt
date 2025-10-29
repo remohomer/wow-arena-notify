@@ -2,25 +2,41 @@ package pl.remoh.wowarenanotify.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 🟦 Brand / Primary palette
-val PrimaryBlue = Color(0xFF2196F3)       // Główny niebieski (Material Blue 500)
-val PrimaryBlueLight = Color(0xFF64B5F6)  // Jaśniejszy odcień (Blue 300)
-val PrimaryBlueDark = Color(0xFF1976D2)   // Ciemniejszy (Blue 700)
+// 🎨 WoW Arena Notify – Final Portal Stone v4
 
-// 🌗 Background & Surface
-val BackgroundLight = Color(0xFFF8F9FA)   // Bardzo jasny szary (Google-like)
-val BackgroundDark = Color(0xFF121212)    // Standardowy ciemny
-val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceDark = Color(0xFF1E1E1E)
+// 🔥 Portal core
+val PortalOrange = Color(0xFFF57C00)     // główny pomarańcz (ciemny)
+val PortalAmber = Color(0xFFFFA726)      // jaśniejszy akcent
+val PortalDeep = Color(0xFFB35300)       // ciemnopomarańczowy – dla light mode
 
-// ⚪ Neutral / Text / Icons
-val OnPrimaryLight = Color.White
-val OnPrimaryDark = Color.Black
-val OnSurfaceLight = Color(0xFF1C1C1C)
-val OnSurfaceDark = Color(0xFFECECEC)
-val IconInactive = Color(0x99000000) // Szary z przezroczystością
+// 🪨 Stone palette
+val StoneDark = Color(0xFF35302C)        // ciemny kamień (navbar w jasnym motywie)
+val StoneMedium = Color(0xFF5C534E)
+val StoneLight = Color(0xFF9A8E85)
+val StoneBeige = Color(0xFFE5D8C2)
 
-// ❤️ Status / Alerts (opcjonalnie)
+// 🌑 Backgrounds
+val BackgroundDark = Color(0xFF1B1816)
+val SurfaceDark = Color(0xFF2E2723)
+val BackgroundLight = Color(0xFFF0E6D8)
+val SurfaceLight = Color(0xFFE4D8C6)
+val NavBarLight = StoneDark               // szary kamień
+val NavBarDark = Color(0xFF2E2723)
+
+// ⚪ Text
+val TextPrimaryDark = Color(0xFFF3E4C9)
+val TextSecondaryDark = Color(0xFFBFAE93)
+val TextPrimaryLight = Color(0xFF2C1E12)
+val TextSecondaryLight = Color(0xFF5B4B3C)
+
+// ⚙️ Icons
+val IconActive = PortalOrange
+val IconInactiveDark = Color(0x66F3E4C9)
+val IconInactiveLight = Color(0x99AFA195)
+
+// ❤️ Status / labels
 val SuccessGreen = Color(0xFF4CAF50)
 val WarningOrange = Color(0xFFFFA000)
 val ErrorRed = Color(0xFFF44336)
+val InfoLight = PortalDeep
+val InfoDark = PortalAmber

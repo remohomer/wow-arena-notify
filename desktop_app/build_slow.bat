@@ -1,31 +1,42 @@
 @echo off
 setlocal
-title WoW Arena Notify - Dev Build
-color 0B
+title WoW Arena Notify - Dev Clean Build
+color 0E
+
+::
+:: 🧹 FULL CLEAN DEV BUILD
+:: - czyści build + dist
+:: - odbudowuje wszystkie dependency + assets
+:: - wolniejszy (kilka sekund)
+:: ✅ używaj przy zmianach w QSS/PNG/icon
+::
 
 set MAIN_FILE=main.py
 set APP_NAME=WoW_Arena_Notify
 set ICON_FILE=icon.ico
 set CACHE_DIR=%~dp0\.pyinstaller_cache
 
-if not exist "%CACHE_DIR%" mkdir "%CACHE_DIR%"
-set PYI_CACHE_DIR=%CACHE_DIR%
-
-echo 🧽 Cleaning old dist...
+echo 🧽 Cleaning old build artifacts...
+rmdir /s /q build 2>nul
 rmdir /s /q dist 2>nul
+del /q "%APP_NAME%.spec" 2>nul
 echo.
 
-echo 🏗 Building DEV build: %APP_NAME%.exe ...
+echo 🏗 DEV CLEAN build: %APP_NAME%.exe ...
+echo.
+
 pyinstaller ^
  --noconfirm ^
  --noupx ^
  --onefile ^
  --windowed ^
+ --clean ^
  --name "%APP_NAME%" ^
  --icon "%ICON_FILE%" ^
- --add-data "ui\styles.qss;ui" ^
+ --add-data "ui/styles.qss;ui" ^
  --add-data "icon.ico;." ^
  --add-data ".env;." ^
+ --add-data "assets/portal_icon.png;assets" ^
  --hidden-import=PySide6.QtCore ^
  --hidden-import=PySide6.QtGui ^
  --hidden-import=PySide6.QtWidgets ^
@@ -35,9 +46,6 @@ pyinstaller ^
  --hidden-import=win32security ^
  --hidden-import=pyperclip ^
  --exclude-module PyQt5 ^
- --exclude-module PyQt5.QtCore ^
- --exclude-module PyQt5.QtGui ^
- --exclude-module PyQt5.QtWidgets ^
  --workpath "%CACHE_DIR%\build_dev" ^
  --distpath "dist" ^
  "%MAIN_FILE%"
@@ -50,7 +58,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo ✅ Build complete! Output: dist\%APP_NAME%.exe
+echo ✅ DEV CLEAN build complete → dist\%APP_NAME%.exe
 echo.
 pause
 endlocal

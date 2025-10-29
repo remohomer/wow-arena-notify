@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit
 
 import androidx.core.splashscreen.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import pl.remoh.wowarenanotify.core.SettingsManager
+import pl.remoh.wowarenanotify.ui.theme.ThemeController
 
 class MainActivity : ComponentActivity() {
 
@@ -37,6 +39,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+        // 💾 Wczytaj preferencje motywu (ciemny domyślny)
+        ThemeController.loadTheme(this)
+
+        // (pozostała część kodu bez zmian...)
+
+        setContent {
+            WoWArenaNotifyTheme(
+                darkTheme = ThemeController.isDarkTheme
+            ) {
+                ArenaApp()
+            }
+        }
 
         // ✅ Poproś o uprawnienia do powiadomień (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -77,9 +92,13 @@ class MainActivity : ComponentActivity() {
         }
 
         // ✅ Uruchom serwis nasłuchu Firebase Realtime Database
-        val intent = Intent(this, pl.remoh.wowarenanotify.fcm.RealtimeListenerService::class.java)
-        ContextCompat.startForegroundService(this, intent)
-        Log.i("RTDB", "🚀 Realtime listener started from MainActivity")
+        if (SettingsManager.isBackgroundEnabled(this)) {
+            val intent = Intent(this, pl.remoh.wowarenanotify.fcm.RealtimeListenerService::class.java)
+            ContextCompat.startForegroundService(this, intent)
+            Log.i("RTDB", "🚀 Realtime listener started from MainActivity")
+        } else {
+            Log.i("RTDB", "⚙️ Background operation disabled by user")
+        }
 
         // ✅ Start aplikacji (Compose)
         setContent {

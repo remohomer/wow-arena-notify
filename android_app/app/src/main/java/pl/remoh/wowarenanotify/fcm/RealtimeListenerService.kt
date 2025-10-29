@@ -33,6 +33,8 @@ class RealtimeListenerService : Service() {
         Log.i(TAG, "👂 Starting RealtimeListenerService...")
         TimeSync.start()
 
+        Log.i(TAG, "🧩 Loaded pairingId from config: $pairingId")
+
         // --- ForegroundService (silent channel) ---
         createSilentNotificationChannel()
         val notif = buildSilentNotification()

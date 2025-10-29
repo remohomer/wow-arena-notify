@@ -2,15 +2,18 @@ package pl.remoh.wowarenanotify
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.core.content.ContextCompat
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.zxing.integration.android.IntentIntegrator
 import org.json.JSONObject
 import pl.remoh.wowarenanotify.core.network.HttpHelper
+import pl.remoh.wowarenanotify.fcm.RealtimeListenerService
 import java.util.UUID
 
 /**
@@ -119,6 +122,16 @@ class PairingActivity : ComponentActivity() {
                             "✅ Device paired successfully!\nID: $deviceId",
                             Toast.LENGTH_LONG
                         ).show()
+                        // 🔄 Restart RealtimeListenerService to apply new pairing_id
+                        try {
+                            val ctx = applicationContext
+                            val intent = Intent(ctx, RealtimeListenerService::class.java)
+                            ctx.stopService(intent) // in case old listener was running
+                            ContextCompat.startForegroundService(ctx, intent)
+                            Log.i("PAIR", "🔄 RealtimeListenerService restarted after pairing.")
+                        } catch (e: Exception) {
+                            Log.e("PAIR", "⚠️ Failed to restart listener: ${e.message}")
+                        }
                         finish()
                     }
                 }

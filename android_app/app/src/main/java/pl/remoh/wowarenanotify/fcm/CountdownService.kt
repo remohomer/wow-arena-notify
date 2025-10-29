@@ -5,13 +5,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Color
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.*
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import pl.remoh.wowarenanotify.MainActivity
 import pl.remoh.wowarenanotify.R
 import kotlin.math.abs
-import kotlin.math.max
+import pl.remoh.wowarenanotify.core.SettingsManager
 
 class CountdownService : Service() {
 
@@ -20,10 +22,13 @@ class CountdownService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private val channelId = "arena_countdown_channel"
     private val notificationId = 42
+    private var isStopped = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        isStopped = false
+
         val endsAt = intent?.getLongExtra("endsAt", 0L) ?: 0L
         if (endsAt == 0L) {
             stopSelf()
@@ -33,49 +38,35 @@ class CountdownService : Service() {
         val eventReceivedAt = System.currentTimeMillis()
         isRunning = true
 
-        // 🔧 Oblicz czas pozostały z uwzględnieniem offsetu Firebase i ewentualnego opóźnienia FCM
+        // 🔧 Oblicz czas pozostały z uwzględnieniem offsetu Firebase i opóźnienia
         val now = System.currentTimeMillis()
         val serverNow = now + TimeSync.firebaseOffsetMs
         val rawRemaining = endsAt - serverNow
         val delayCompensation = (now - eventReceivedAt)
         var remaining = rawRemaining - delayCompensation
 
-        // 🧮 Pobierz desktopOffset (jeśli przyszedł z FCM)
+        // 🧮 Korekta offsetu desktopowego (jeśli istnieje)
         val desktopOffset = intent?.getLongExtra("desktopOffset", Long.MIN_VALUE) ?: Long.MIN_VALUE
         if (desktopOffset != Long.MIN_VALUE) {
             val localOffset = TimeSync.firebaseOffsetMs
             val offsetDiff = desktopOffset - localOffset
             val adjustedRemaining = remaining + offsetDiff
-
-            Log.i(
-                "CountdownService",
-                "🧭 Offset sync check → localOffset=$localOffset | desktopOffset=$desktopOffset | " +
-                        "offsetDiff=$offsetDiff | rawRemaining=$remaining | adjustedRemaining=$adjustedRemaining"
-            )
-
-            // Jeśli różnica jest mała (<3s), zastosuj korektę czasu
             if (abs(offsetDiff) < 3000) {
                 remaining = adjustedRemaining
-                Log.i("CountdownService", "✅ Adjusted remaining using offsetDiff ($offsetDiff ms)")
+                Log.i("CountdownService", "✅ Offset sync: applied $offsetDiff ms correction")
             } else {
-                Log.w("CountdownService", "⚠️ OffsetDiff too large (${offsetDiff}ms) → ignoring correction.")
+                Log.w("CountdownService", "⚠ OffsetDiff too large ($offsetDiff ms) — ignored")
             }
-        } else {
-            Log.i("CountdownService", "ℹ️ No desktopOffset in intent → using standard Firebase offset only.")
         }
 
-        Log.i(
-            "CountdownService",
-            "🕒 endsAt=$endsAt | localNow=$now | offset=${TimeSync.firebaseOffsetMs} | " +
-                    "serverNow=$serverNow | delayComp=$delayCompensation | remaining=$remaining ms"
-        )
+        Log.i("CountdownService", "🕒 Remaining time: $remaining ms")
 
-        // WakeLock – żeby system nie ubił w tle
+        // 💤 WakeLock
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WoWArenaNotify::CountdownLock")
         wakeLock?.acquire(remaining + 2000)
 
-        // Uruchom notyfikację
+        // 🔔 Notyfikacja
         createNotificationChannel()
         val notification = buildNotification(remaining)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -84,11 +75,12 @@ class CountdownService : Service() {
             startForeground(notificationId, notification)
         }
 
-        playAlert()
-
+        // 🔄 Tick loop
         handler = Handler(Looper.getMainLooper())
         tickRunnable = object : Runnable {
             override fun run() {
+                if (isStopped) return
+
                 val currentNow = System.currentTimeMillis()
                 val currentServerNow = currentNow + TimeSync.firebaseOffsetMs
                 val rem = endsAt - currentServerNow
@@ -107,15 +99,31 @@ class CountdownService : Service() {
                     return
                 }
 
-                if (secondsLeft == 10) playAlert(true)
-                else if (secondsLeft in 1..9) playAlert(false)
+                // 📦 Ustawienia użytkownika
+                val vibrationEnabled = SettingsManager.isVibrationEnabled(this@CountdownService)
+                val soundsEnabled = SettingsManager.isSoundsEnabled(this@CountdownService)
+                val finalSeconds = SettingsManager.getFinalSeconds(this@CountdownService)
+                val notificationsEnabled = SettingsManager.isNotificationsEnabled(this@CountdownService)
 
-                (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-                    .notify(notificationId, buildNotification(rem))
-                handler?.postDelayed(this, 1000)
+                // 🎯 Uruchamiaj wibracje / dźwięk tylko w ostatnich sekundach
+                if (secondsLeft in 1..finalSeconds) {
+                    if (vibrationEnabled || soundsEnabled) {
+                        val isFinal = (secondsLeft == 1)
+                        playAlert(isFinal, vibrationEnabled, soundsEnabled)
+                    }
+                }
+
+                // 🔔 Aktualizacja notyfikacji tylko jeśli włączone
+                if (notificationsEnabled) {
+                    (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                        .notify(notificationId, buildNotification(rem))
+                }
+
+                if (!isStopped) handler?.postDelayed(this, 1000)
             }
         }
         handler?.post(tickRunnable!!)
+
         return START_STICKY
     }
 
@@ -166,41 +174,62 @@ class CountdownService : Service() {
         }
     }
 
-    private fun playAlert(final: Boolean = false) {
+    /**
+     * 🎵 Wibracja + dźwięk zgodne z ustawieniami użytkownika
+     */
+    private fun playAlert(final: Boolean, vibration: Boolean, sound: Boolean) {
         try {
-            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            val pattern = if (final) longArrayOf(0, 200, 80, 200) else longArrayOf(0, 100, 60, 100)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
-            } else vibrator.vibrate(pattern, -1)
-        } catch (_: Exception) {}
+            if (vibration) {
+                val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                val pattern = if (final)
+                    longArrayOf(0, 250, 100, 250)
+                else
+                    longArrayOf(0, 120, 80, 120)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
+                } else {
+                    vibrator.vibrate(pattern, -1)
+                }
+            }
+
+            if (sound) {
+                val toneType = if (final) ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD
+                else ToneGenerator.TONE_PROP_BEEP
+                val toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+                toneGen.startTone(toneType, if (final) 300 else 120)
+            }
+
+        } catch (e: Exception) {
+            Log.e("CountdownService", "⚠️ playAlert() failed: ${e.message}")
+        }
     }
 
     override fun onDestroy() {
         Log.i("CountdownService", "🛑 CountdownService destroyed – cleaning up.")
-
-        // Usuń ticki
+        isStopped = true
         handler?.removeCallbacks(tickRunnable ?: return)
         tickRunnable = null
 
-        // 🔹 Wyślij ostatni broadcast do UI — zawsze!
+        // 🔹 Wyślij końcowy broadcast
         val intent = Intent("ARENA_COUNTDOWN_UPDATE").apply {
             setPackage(packageName)
             putExtra("state", "WAITING")
             putExtra("remaining", 0)
         }
         sendBroadcast(intent)
-        Log.i("CountdownService", "📡 Broadcasted final WAITING state before stop")
 
-        // Usuń notyfikację
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(notificationId)
-
-        // Zwolnij zasoby
         try { wakeLock?.release() } catch (_: Exception) {}
         wakeLock = null
         isRunning = false
 
         super.onDestroy()
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        isStopped = true
+        super.onTaskRemoved(rootIntent)
     }
 
     companion object {
