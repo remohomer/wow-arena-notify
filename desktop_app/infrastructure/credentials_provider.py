@@ -1,4 +1,4 @@
-# core/credentials_provider.py — v2 (2025-10-26)
+# file: desktop_app/infrastructure/credentials_provider.py
 # ✅ Centralized, secure configuration provider
 # ✅ No Firebase service JSON dependency
 # ✅ Loads all from .env or system environment
@@ -6,7 +6,7 @@
 
 import os
 from dotenv import load_dotenv
-from core.logger import logger
+from infrastructure.logger import logger
 
 
 class CredentialsProvider:

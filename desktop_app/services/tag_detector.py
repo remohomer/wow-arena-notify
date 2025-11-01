@@ -1,4 +1,4 @@
-# core/tag_detector.py — v5 ✅
+# file: desktop_app/services/tag_detector.py
 """
 Full-border detection for QueuePopNotify RimFrame Edition
 Works with WoW Arena Notify v4.20+

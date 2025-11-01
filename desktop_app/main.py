@@ -1,10 +1,11 @@
+# file: desktop_app/main.py
 import sys
 import socket
 from pathlib import Path
 from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtGui import QIcon
 from ui.main_window import MainWindow
-from core.logger import logger
+from infrastructure.logger import logger
 
 
 class SingleInstance:

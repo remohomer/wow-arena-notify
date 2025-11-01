@@ -1,3 +1,4 @@
+# file: desktop_app/ui/dialogs/how_it_works.py
 from PySide6.QtWidgets import QMessageBox
 
 def show_info(parent=None):

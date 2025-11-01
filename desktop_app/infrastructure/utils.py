@@ -1,11 +1,11 @@
-#core/utils.py
+# file: desktop_app/infrastructure/utils.py
 
 import os
 import time
 import threading
 from pathlib import Path
 from pynput import keyboard
-from core.logger import logger
+from infrastructure.logger import logger
 
 
 def safe_delete(file_path: Path):

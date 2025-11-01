@@ -1,3 +1,4 @@
+# file: desktop_app/infrastructure/logger.py
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path

@@ -33,6 +33,7 @@ pyinstaller ^
  --add-data "icon.ico;." ^
  --add-data ".env;." ^
  --add-data "assets/portal_icon.png;assets" ^
+ --add-data "assets/gong.wav;assets" ^
  --hidden-import=PySide6.QtCore ^
  --hidden-import=PySide6.QtGui ^
  --hidden-import=PySide6.QtWidgets ^

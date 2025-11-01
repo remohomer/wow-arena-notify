@@ -1,16 +1,10 @@
-# ui/tabs/home_tab.py — v14 (2025-10-29 final)
-# ✅ Proper STOP/RESUME logic UI
-# ✅ Consistent colors
-# ✅ Progress bar padding fix
+# file: desktop_app/ui/tabs/home_tab.py
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QProgressBar,
-    QHBoxLayout, QSpacerItem, QSizePolicy, QGraphicsOpacityEffect
+    QHBoxLayout
 )
-from PySide6.QtCore import (
-    Qt, Signal, QEasingCurve, QPropertyAnimation,
-    QParallelAnimationGroup, QAbstractAnimation
-)
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap, QImage
 from pathlib import Path
 import sys
@@ -28,34 +22,42 @@ class HomeTab(QWidget):
         super().__init__(parent)
         self.cfg = cfg
         self._listening = False
-
+        self._max_seconds = 0
         self.init_ui()
-        self._setup_animations()
 
-    # UI
+    # ------------------------------------------------------------------
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 20, 30, 20)
         layout.setSpacing(12)
 
+        # Portal
         self.portal_label = QLabel(alignment=Qt.AlignCenter)
         self.portal_label.setMinimumSize(230, 230)
 
         if PORTAL_IMAGE_PATH.exists():
             pix = QPixmap(str(PORTAL_IMAGE_PATH))
         else:
-            pix = QPixmap(240, 240); pix.fill(Qt.darkGray)
+            pix = QPixmap(240, 240)
+            pix.fill(Qt.darkGray)
 
         img = pix.toImage().convertToFormat(QImage.Format_ARGB32)
-        self._base_pix = QPixmap.fromImage(img)
-        self._apply_pix(260)
+        base_pix = QPixmap.fromImage(img).scaled(
+            260, 260, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+        self.portal_label.setPixmap(base_pix)
+
         layout.addStretch()
         layout.addWidget(self.portal_label, alignment=Qt.AlignCenter)
-        layout.addStretch()
 
-        self.status_label = QLabel("Initializing…", alignment=Qt.AlignCenter)
+        # Status
+        self.status_label = QLabel(
+            "Listening for arena queue popups…",
+            alignment=Qt.AlignCenter
+        )
         layout.addWidget(self.status_label)
 
+        # Progress bar
         self.progress = QProgressBar()
         self.progress.hide()
         self.progress.setFixedHeight(25)
@@ -63,12 +65,13 @@ class HomeTab(QWidget):
 
         layout.addSpacing(10)
 
+        # Buttons
         self.btn_reset = QPushButton("🔄 Reset")
         self.btn_reset.setObjectName("secondaryButton")
         self.btn_reset.clicked.connect(self.resetRequested.emit)
 
         self.btn_toggle = QPushButton("▶ Start")
-        self.btn_toggle.setObjectName("mainButton")
+        self.btn_toggle.setObjectName("resumeButton")
         self.btn_toggle.clicked.connect(self.toggleRequested.emit)
 
         row = QHBoxLayout()
@@ -76,77 +79,66 @@ class HomeTab(QWidget):
         row.addWidget(self.btn_reset)
         row.addWidget(self.btn_toggle)
         row.addStretch()
-
         layout.addLayout(row)
+
         layout.addStretch()
 
-    # Anim
-    def _setup_animations(self):
-        eff = QGraphicsOpacityEffect()
-        self.portal_label.setGraphicsEffect(eff)
-        self._opacity = QPropertyAnimation(eff, b"opacity")
-        self._opacity.setStartValue(0.85)
-        self._opacity.setEndValue(1.0)
-        self._opacity.setDuration(1600)
-        self._opacity.setLoopCount(-1)
-
-        self._anim_group = QParallelAnimationGroup(self)
-        self._anim_group.addAnimation(self._opacity)
-
-    def _apply_pix(self, size):
-        scaled = self._base_pix.scaled(
-            size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.portal_label.setPixmap(scaled)
-        self.portal_label.setFixedSize(size, size)
-
-    # Anim control
-    def _start_anim(self):
-        if self._anim_group.state() == QAbstractAnimation.Stopped:
-            self._anim_group.start()
-
-    def _stop_anim(self):
-        if self._anim_group.state() != QAbstractAnimation.Stopped:
-            self._anim_group.stop()
-
-        eff = self.portal_label.graphicsEffect()
-        if eff:
-            eff.setOpacity(1.0)
-
-    # UI State
+    # ------------------------------------------------------------------
     def set_listening(self, active: bool):
         self._listening = active
-
         if active:
             self.btn_toggle.setText("⏸ Stop")
-            self.set_status("Waiting for arena popup…", "#ffaa00")
-            self._start_anim()
+            self.btn_toggle.setObjectName("stopButton")
+            self.set_status("Listening for arena queue popups…", "#ffaa00", big=False)
         else:
             self.btn_toggle.setText("▶ Resume")
-            self.set_status("Listener disabled.", "#ff5555")
-            self._stop_anim()
-            self.progress.hide()
+            self.btn_toggle.setObjectName("resumeButton")
+            self.set_paused_status()
 
-    def reset_ui(self):
-        self.set_status("Waiting for arena popup…", "#ffaa00")
-        self.progress.hide()
-        self._start_anim() if self._listening else self._stop_anim()
+        self.btn_toggle.style().unpolish(self.btn_toggle)
+        self.btn_toggle.style().polish(self.btn_toggle)
+        self.btn_toggle.update()
 
-    # Countdown
+    # ------------------------------------------------------------------
     def start_countdown_ui(self, seconds: int):
+        """Initialize countdown UI (downward)."""
+        self._max_seconds = seconds
         self.progress.setMaximum(seconds)
-        self.progress.setValue(0)
+        # progress value == remaining seconds (counts down)
+        self.progress.setValue(seconds)
+        self.progress.setFormat(f"{seconds}s")
         self.progress.show()
+        # tekst statusu bez sekund
+        self.set_status("⚔️ Arena queue popped!", "#ffaa00", big=False)
 
-    def update_countdown_ui(self, value: int):
-        self.progress.setValue(value)
+    def update_countdown_ui(self, remaining: int):
+        """Update remaining seconds on the bar (downward)."""
+        if remaining < 0:
+            remaining = 0
+        self.progress.setValue(remaining)
+        self.progress.setFormat(f"{remaining}s")
 
     def stop_countdown_ui(self, reset_status_to_listening=True):
         self.progress.hide()
         if reset_status_to_listening:
-            self.set_listening(self._listening)
+            self.set_status("Listening for arena queue popups…", "#ffaa00", big=False)
 
-    def set_status(self, text, color="#ffaa00"):
+    # ------------------------------------------------------------------
+    def set_status(self, text, color="#ffaa00", big=False):
+        size = 23 if big else 15
+        weight = 800 if big else 600
         self.status_label.setText(text)
         self.status_label.setStyleSheet(
-            f"color:{color};font-weight:600;font-size:15px;"
+            f"color:{color};font-weight:{weight};font-size:{size}px;"
         )
+
+    def set_paused_status(self):
+        self.status_label.setText("⏸ Listening paused.")
+        self.status_label.setStyleSheet(
+            "color:#ff7777; font-weight:600; font-size:15px;"
+        )
+
+    # ------------------------------------------------------------------
+    def reset_ui(self):
+        self.progress.hide()
+        self.set_status("Listening for arena queue popups…", "#ffaa00", big=False)

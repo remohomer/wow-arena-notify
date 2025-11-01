@@ -1,4 +1,4 @@
-# core/push/arena_realtime.py — v3 (2025-10-26)
+# file: desktop_app/services/push/arena_realtime.py
 # ✅ No service account required
 # ✅ Uses CredentialsProvider for RTDB URL
 # ✅ Pure HTTPS (REST) write to Firebase
@@ -7,9 +7,9 @@
 import time
 import requests
 from typing import Optional
-from core.logger import logger
-from core.time_sync import get_firebase_server_time
-from core.credentials_provider import CredentialsProvider
+from infrastructure.logger import logger
+from services.time_sync import get_firebase_server_time
+from infrastructure.credentials_provider import CredentialsProvider
 
 
 def _safe_token_for_path(token: str) -> str:

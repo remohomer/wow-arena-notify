@@ -1,3 +1,4 @@
+# file: desktop_app/infrastructure/watcher.py
 from pathlib import Path
 
 def get_latest_screenshot_info(game_folder: str):

@@ -1,4 +1,4 @@
-# core/config.py — v3 (2025-10-27)
+# file: desktop_app/infrastructure/config.py
 # ✅ Generates persistent desktop_id (UUID4)
 # ✅ Cleans legacy keys automatically
 # ✅ Safe load/save with fallback defaults
@@ -9,7 +9,7 @@ import os
 import uuid
 from pathlib import Path
 from typing import Dict
-from core.logger import logger
+from infrastructure.logger import logger
 
 # -------------------------------------------------------
 # 📂 Lokalizacja pliku konfiguracyjnego

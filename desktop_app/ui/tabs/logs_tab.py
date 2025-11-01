@@ -1,6 +1,6 @@
-# ui/tabs/logs_tab.py
+# file: desktop_app/ui/tabs/logs_tab.py
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QPlainTextEdit
-from core.logger import logger
+from infrastructure.logger import logger
 
 
 class LogsTab(QWidget):

@@ -1,4 +1,4 @@
-# ui/dialogs/pair_device.py — v11.1 (2025-10-27)
+# file: desktop_app/ui/dialogs/pair_device.py
 import json
 import qrcode
 import tempfile
@@ -10,8 +10,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QPixmap, QFont
-from core import pairing
-from core.logger import logger
+from services import pairing
+from infrastructure.logger import logger
 
 
 class PairDeviceDialog(QDialog):

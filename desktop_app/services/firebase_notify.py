@@ -1,4 +1,4 @@
-# core/firebase_notify.py — v3 (2025-10-26)
+# file: desktop_app/services/firebase_notify.py
 # ✅ Dynamic pushArena URL (from CredentialsProvider)
 # ✅ Secure HMAC-SHA256 signature
 # ✅ Full diagnostics and clean fallback
@@ -11,9 +11,9 @@ import hashlib
 import json
 import requests
 from typing import Optional
-from core.logger import logger
-from core.time_sync import get_firebase_server_time, get_server_offset
-from core.credentials_provider import CredentialsProvider
+from infrastructure.logger import logger
+from services.time_sync import get_firebase_server_time, get_server_offset
+from infrastructure.credentials_provider import CredentialsProvider
 
 
 # -------------------------------------------------------------------------

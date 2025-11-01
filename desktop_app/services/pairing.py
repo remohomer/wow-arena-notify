@@ -1,12 +1,12 @@
-# core/pairing.py — logic-only v11.0 (2025-10-27)
+# file: desktop_app/services/pairing.py
 # ✅ Handles all REST and config logic, no UI elements
 
 import time
 import uuid
 import requests
-from core.config import load_config, save_config
-from core.logger import logger
-from core.credentials_provider import CredentialsProvider
+from infrastructure.config import load_config, save_config
+from infrastructure.logger import logger
+from infrastructure.credentials_provider import CredentialsProvider
 
 
 def create_pairing_entry():

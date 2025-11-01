@@ -1,12 +1,12 @@
-# core/time_sync.py — v2 (2025-10-26)
+# file: desktop_app/services/time_sync.py
 # ✅ Uses CredentialsProvider.get_rtdb_url()
 # ✅ Graceful fallback to local clock
 # ✅ Clean logging
 
 import time
 import requests
-from core.logger import logger
-from core.credentials_provider import CredentialsProvider
+from infrastructure.logger import logger
+from infrastructure.credentials_provider import CredentialsProvider
 
 _CACHE_TTL = 300  # seconds
 _last_offset = 0

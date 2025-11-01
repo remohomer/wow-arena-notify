@@ -1,4 +1,4 @@
-# ui/tabs/tester_tab.py — v3 (2025-10-26)
+# file: desktop_app/ui/tabs/tester_tab.py
 # ✅ No Firebase Admin SDK dependency
 # ✅ Uses CredentialsProvider + REST time sync
 # ✅ Fix: removed undefined user_token
@@ -6,10 +6,10 @@
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QSpinBox, QMessageBox
 from PySide6.QtCore import Qt, QTimer
-from core.firebase_notify import send_fcm_message
-from core.logger import logger
-from core.time_sync import get_server_offset, get_firebase_server_time
-from core.credentials_provider import CredentialsProvider
+from services.firebase_notify import send_fcm_message
+from infrastructure.logger import logger
+from services.time_sync import get_server_offset, get_firebase_server_time
+from infrastructure.credentials_provider import CredentialsProvider
 import time
 import uuid
 import threading

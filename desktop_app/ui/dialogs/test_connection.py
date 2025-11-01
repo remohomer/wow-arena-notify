@@ -1,4 +1,4 @@
-# ui/dialogs/test_connection.py — v2 (2025-10-26)
+# file: desktop_app/ui/dialogs/test_connection.py
 # ✅ Uses CredentialsProvider.get_push_arena_url()
 # ✅ Canonical HMAC signing (same as firebase_notify)
 # ✅ Improved logging & error clarity
@@ -9,9 +9,9 @@ import hashlib
 import uuid
 import requests
 from PySide6.QtWidgets import QMessageBox
-from core.config import load_config
-from core.logger import logger
-from core.credentials_provider import CredentialsProvider
+from infrastructure.config import load_config
+from infrastructure.logger import logger
+from infrastructure.credentials_provider import CredentialsProvider
 
 
 def run_test(parent=None):

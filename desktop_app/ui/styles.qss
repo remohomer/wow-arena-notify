@@ -1,169 +1,113 @@
-/* === PORTAL THEME — Matching Android App === */
-/* Author: Remoh + ChatGPT | v1.2 */
-
-/* --------------------------
-   Global Colors (Dark mode)
---------------------------- */
-@PortalOrange:      #F57C00;
-@PortalAmber:       #FFA726;
-@StoneDark:         #35302C;
-@BackgroundDark:    #1B1816;
-@SurfaceDark:       #2E2723;
-@TextPrimaryDark:   #F3E4C9;
-@TextSecondaryDark: #BFAE93;
-@SuccessGreen:      #4CAF50;
-@ErrorRed:          #F44336;
-
-/* --------------------------
-   Base
---------------------------- */
+/* === GLOBAL === */
 QWidget {
-    background-color: @BackgroundDark;
-    color: @TextPrimaryDark;
+    background-color: #1b1816;
+    color: #f3e4c9;
     font-family: "Segoe UI";
-    font-size: 15px;
+    font-size: 14px;
 }
 
-/* --------------------------
-   Buttons (ALL default)
---------------------------- */
+/* === BUTTONS === */
 QPushButton {
-    background-color: @SurfaceDark;
+    background-color: #2e2723;
     border: 1px solid #000;
-    border-radius: 10px;
-    padding: 10px 18px;
-    font-size: 15px;
-    font-weight: 600;
-    color: @TextPrimaryDark;
-}
-QPushButton:hover   { background-color: #3A322F; }
-QPushButton:pressed { background-color: #4A423E; }
-
-/* --------------------------
-   Main action button
---------------------------- */
-QPushButton#mainButton {
-    background-color: @PortalOrange;
-    color: white;
-    border: none;
-    font-weight: bold;
-    padding: 10px 22px;
-    border-radius: 12px;
-}
-QPushButton#mainButton:hover   { background-color: @PortalAmber; }
-QPushButton#mainButton:pressed { background-color: #B35300; }
-
-/* --------------------------
-   Secondary Actions
---------------------------- */
-QPushButton#secondaryButton {
-    background-color: #5C534E;
-    color: @TextPrimaryDark;
-    border: 1px solid #000;
-    border-radius: 10px;
-    padding: 10px 20px;
-}
-QPushButton#secondaryButton:hover   { background-color: #70655F; }
-QPushButton#secondaryButton:pressed { background-color: #4A423E; }
-
-/* --------------------------
-   Tabs styling
---------------------------- */
-QTabWidget::pane {
-    border: none;
-    background: @BackgroundDark;
-}
-
-/* Enable custom drawing (disable Windows overrides) */
-QTabBar {
-    qproperty-drawBase: 0;
-    background: transparent;
-}
-
-/* Base appearance */
-QTabBar::tab {
-    background: @SurfaceDark;
-    color: @TextSecondaryDark;
-    padding: 8px 20px;
     border-radius: 8px;
-    border: 1px solid #000;
-    margin: 0px 4px;
+    padding: 8px 16px;
+    font-weight: 600;
+    color: #f3e4c9;
 }
 
-/* Active tab (selected/checked/focused) */
-QTabBar::tab:selected,
-QTabBar::tab:checked,
-QTabBar::tab:focus:selected {
-    background: @PortalOrange;
+QPushButton:hover {
+    background-color: #3a322f;
+}
+
+QPushButton:pressed {
+    background-color: #4a423e;
+}
+
+/* === MAIN BUTTON Start/Resume === */
+QPushButton#mainButton {
+    background-color: #4caf50;
     color: white;
-    font-weight: 700;
+    border: none;
+}
+
+QPushButton#mainButton:hover {
+    background-color: #60c865;
+}
+
+QPushButton#mainButton:pressed {
+    background-color: #2c8a37;
+}
+
+/* === STOP === */
+QPushButton#stopButton {
+    background-color: #e53935;
+    color: white;
+    border: none;
+}
+
+QPushButton#stopButton:hover {
+    background-color: #ef5350;
+}
+
+QPushButton#stopButton:pressed {
+    background-color: #b71c1c;
+}
+
+/* === RESET === */
+QPushButton#secondaryButton {
+    background-color: #4a423e;
     border: 1px solid #000;
-    box-shadow: 0px 0px 8px rgba(245,124,0,0.5);
+}
+QPushButton#secondaryButton:hover {
+    background-color: #5a524d;
 }
 
-/* Hover — only when NOT active */
-QTabBar::tab:hover:!selected:!checked {
-    background: #3A322F;
-    color: @TextPrimaryDark;
-}
-
-/* --------------------------
-   ProgressBar
---------------------------- */
+/* === PROGRESS BAR === */
 QProgressBar {
-    background-color: #2E2723;
     border-radius: 10px;
-    height: 26px;
+    background-color: #2e2723;
     text-align: center;
     font-weight: bold;
     color: white;
 }
-
 QProgressBar::chunk {
+    background-color: #ffa726;
     border-radius: 10px;
-    background-color: @PortalOrange;
 }
 
-/* --------------------------
-   Status Labels
---------------------------- */
+/* === TABS === */
+QTabWidget::pane {
+    border: 1px solid #2b2623;
+    background: #1b1816;
+    border-top: none;
+}
+
+QTabBar::tab {
+    background: #2a2522;
+    color: #bfae93;
+    padding: 6px 14px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    margin-right: 3px;
+}
+
+QTabBar::tab:hover {
+    background: #3a322f;
+    color: #f3e4c9;
+}
+
+QTabBar::tab:selected {
+    background-color: #E08B28;
+    color: white;
+    font-weight: 700;
+    border-radius: 8px;
+    box-shadow: 0px 0px 6px rgba(224,139,40,0.4);
+}
+
+/* === STATUS LABEL === */
 QLabel#status {
-    font-size: 16px;
     font-weight: 600;
+    font-size: 15px;
     padding: 6px;
-}
-
-/* --------------------------
-   Inputs
---------------------------- */
-QLineEdit, QComboBox {
-    background-color: @StoneDark;
-    color: @TextPrimaryDark;
-    border: 1px solid #000;
-    border-radius: 6px;
-    padding: 6px;
-}
-
-/* --------------------------
-   GroupBox
---------------------------- */
-QGroupBox {
-    background-color: @SurfaceDark;
-    border: 1px solid #000;
-    border-radius: 10px;
-    padding: 14px;
-    margin-top: 10px;
-}
-QGroupBox:title {
-    color: @PortalAmber;
-    padding: 4px;
-    font-size: 14px;
-}
-
-/* --------------------------
-   MessageBox
---------------------------- */
-QMessageBox {
-    background-color: @SurfaceDark;
-    color: @TextPrimaryDark;
 }
