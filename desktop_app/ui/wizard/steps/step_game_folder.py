@@ -15,14 +15,15 @@ class StepGameFolder(QWidget):
         self.title = QLabel("Select your World of Warcraft folder")
         self.title.setAlignment(Qt.AlignCenter)
         self.title.setStyleSheet("font-size:16px; font-weight:800;")
-        self.info = QLabel(self._fmt_path())
+
+        self.info = QLabel(self._fmt())
         self.info.setAlignment(Qt.AlignCenter)
         self.info.setWordWrap(True)
         self.info.setStyleSheet("color:#c9bda7;")
 
         self.btn = QPushButton("Browse…")
         self.btn.setFixedHeight(36)
-        self.btn.clicked.connect(self.choose_folder)
+        self.btn.clicked.connect(self.choose)
 
         lay.addStretch()
         lay.addWidget(self.title)
@@ -30,21 +31,24 @@ class StepGameFolder(QWidget):
         lay.addWidget(self.btn, alignment=Qt.AlignCenter)
         lay.addStretch()
 
-    def _fmt_path(self):
+    def _fmt(self):
         p = self.cfg.get("game_folder", "")
         return f"Current: <b>{p or '[not selected]'}</b>"
 
-    def choose_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select your World of Warcraft folder")
+    def choose(self):
+        folder = QFileDialog.getExistingDirectory(self, "Select your WoW folder")
         if not folder:
             return
         self.cfg["game_folder"] = folder
         save_config(self.cfg)
-        self.info.setText(self._fmt_path())
+        self.info.setText(self._fmt())
+
+        # ✅ Auto advance (correct)
+        from ui.wizard.wizard_window import WizardWindow
+        WizardWindow.instance.auto_next()
 
     def can_continue(self):
         ok = bool(self.cfg.get("game_folder"))
         if not ok:
-            # soft block: możesz pozwolić przejść bez folderu – ale trzymamy twardy wymóg
-            self.info.setText(self._fmt_path() + "<br><span style='color:#ff7777'>Please select your WoW folder.</span>")
-        return ok, "Select WoW folder"
+            self.info.setText(self._fmt() + "<br><span style='color:#ff7777'>Select the folder.</span>")
+        return ok, "Select folder"

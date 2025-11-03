@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QPixmap
-from PySide6.QtCore import QUrl
-from infrastructure.logger import logger
+import qrcode
+from io import BytesIO
 
 PLAY_URL = "https://play.google.com/store/apps/details?id=pl.remoh.wowarenanotify"
 
@@ -19,35 +19,36 @@ class StepAndroidApp(QWidget):
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("font-size:16px; font-weight:800;")
 
-        desc = QLabel(
-            "The phone app receives arena notifications and shows the countdown.\n"
-            "Install it now to continue."
-        )
+        desc = QLabel("Scan QR or click the button below.")
         desc.setAlignment(Qt.AlignCenter)
         desc.setWordWrap(True)
         desc.setStyleSheet("color:#c9bda7;")
 
-        # Link button
         btn = QPushButton("Open Google Play")
         btn.setFixedHeight(36)
         btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(PLAY_URL)))
 
-        # Optional QR (bez zależności — placeholder jako link tekstowy / albo własny obrazek)
-        hint = QLabel(f"<a href='{PLAY_URL}'>Play Store link</a>")
-        hint.setOpenExternalLinks(True)
-        hint.setAlignment(Qt.AlignCenter)
-        hint.setStyleSheet("color:#ffaa00;")
+        # QR
+        qr = qrcode.QRCode(box_size=3, border=2)
+        qr.add_data(PLAY_URL)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        pixmap = QPixmap()
+        pixmap.loadFromData(buffer.getvalue())
+
+        qr_label = QLabel()
+        qr_label.setPixmap(pixmap)
+        qr_label.setAlignment(Qt.AlignCenter)
 
         lay.addStretch()
         lay.addWidget(title)
         lay.addWidget(desc)
+        lay.addWidget(qr_label)
         lay.addWidget(btn, alignment=Qt.AlignCenter)
-        lay.addWidget(hint)
         lay.addStretch()
 
     def can_continue(self):
         return True, ""
-
-    def on_enter(self):
-        # nic — zostawiamy możliwość Skip
-        pass

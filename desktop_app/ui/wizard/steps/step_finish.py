@@ -14,8 +14,9 @@ class StepFinish(QWidget):
         title.setStyleSheet("font-size:18px; font-weight:800;")
 
         desc = QLabel(
-            "You can always re-pair or test the connection from the Pairing tab.\n"
-            "Have fun and good luck in arenas!"
+            "You can re-pair or test connection anytime\n"
+            "from the Pairing tab.\n\n"
+            "Good luck in arenas!"
         )
         desc.setAlignment(Qt.AlignCenter)
         desc.setWordWrap(True)

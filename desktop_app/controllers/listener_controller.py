@@ -103,5 +103,9 @@ class ListenerController:
             QTimer.singleShot(2000, self.restore_status)
 
     def restore_status(self):
+        if not hasattr(self.main, "queue_tab"):
+            return
+        if not hasattr(self.main, "countdown"):
+            return
         if self.is_running and not self.main.countdown.running:
             self.main.queue_tab.set_listening(True)

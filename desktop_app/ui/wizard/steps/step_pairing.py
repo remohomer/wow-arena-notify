@@ -7,7 +7,9 @@ from services import pairing
 class StepPairing(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._poll = None
+        self._poll = QTimer(self)
+        self._poll.setInterval(700)
+        self._poll.timeout.connect(self._refresh)
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(32, 24, 32, 24)
@@ -17,14 +19,14 @@ class StepPairing(QWidget):
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("font-size:16px; font-weight:800;")
 
-        self.state = QLabel("Click the button below and scan the QR code with the Android app.")
+        self.state = QLabel("Click below and scan the QR in the app.")
         self.state.setAlignment(Qt.AlignCenter)
         self.state.setWordWrap(True)
         self.state.setStyleSheet("color:#c9bda7;")
 
         self.btn = QPushButton("Start pairing (QR)")
         self.btn.setFixedHeight(38)
-        self.btn.clicked.connect(self.open_pair_dialog)
+        self.btn.clicked.connect(self.open)
 
         lay.addStretch()
         lay.addWidget(title)
@@ -32,29 +34,22 @@ class StepPairing(QWidget):
         lay.addWidget(self.btn, alignment=Qt.AlignCenter)
         lay.addStretch()
 
-        # small poll timer to update state
-        self._poll = QTimer(self)
-        self._poll.setInterval(800)
-        self._poll.timeout.connect(self._refresh_status)
-        self._poll.start()
-
-    def _refresh_status(self):
-        status = pairing.get_pairing_status()
-        if status.get("paired"):
-            self.state.setText("✅ Paired successfully! You can proceed.")
-        else:
-            self.state.setText("Waiting for pairing…")
-
-    def open_pair_dialog(self):
+    def open(self):
         dlg = PairDeviceDialog(self)
         dlg.exec()
 
-    def can_continue(self):
+    def _refresh(self):
         status = pairing.get_pairing_status()
         if status.get("paired"):
-            return True, ""
-        self.state.setText("<b style='color:#ff7777'>Device not paired yet.</b>")
-        return False, "Not paired"
+            self.state.setText("✅ Paired!")
+            # auto advance gently
+            self._poll.stop()
+            QTimer.singleShot(600, self.parent().go_next)
+        else:
+            self.state.setText("Waiting for pairing…")
+
+    def can_continue(self):
+        return pairing.get_pairing_status().get("paired"), "Not paired"
 
     def on_enter(self):
-        self._refresh_status()
+        self._poll.start()

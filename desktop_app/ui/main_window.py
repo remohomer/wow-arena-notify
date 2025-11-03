@@ -191,7 +191,7 @@ class MainWindow(QWidget):
         if not self.game_folder:
             self.request_game_folder()
 
-        self.listener.start()
+        QTimer.singleShot(300, self.listener.start)
         self.tray.init_tray(icon_path)
 
         self._broadcast = BroadcastPoller(self.broadcastBar, interval_ms=7000, parent=self)

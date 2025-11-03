@@ -14,11 +14,11 @@ class StepWelcome(QWidget):
         title.setStyleSheet("font-size:18px; font-weight:800;")
 
         desc = QLabel(
-            "We’ll take less than a minute to get you ready:\n\n"
-            "1) Pick your WoW folder\n"
-            "2) Install the Android app (if needed)\n"
-            "3) Pair your phone\n"
-            "4) Verify the connection"
+            "We’ll take less than a minute:\n\n"
+            "• Pick your WoW folder\n"
+            "• Install mobile app\n"
+            "• Pair your phone\n"
+            "• You’re done!"
         )
         desc.setAlignment(Qt.AlignCenter)
         desc.setWordWrap(True)
