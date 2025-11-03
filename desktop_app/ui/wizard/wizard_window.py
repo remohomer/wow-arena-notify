@@ -22,20 +22,19 @@ BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent.
 
 class WizardWindow(QWidget):
     """
-    Onboarding wizard:
-      0. Welcome
-      1. Game folder
-      2. Android app (QR)
-      3. Pairing
-      4. Finish
-    ESC = Back
+    Steps:
+      0 = Welcome
+      1 = WoW folder
+      2 = Android app
+      3 = Pairing
+      4 = All set
     """
     finishedSignal = Signal()
-    instance = None     # <— singleton
+    instance = None
 
     def __init__(self):
         super().__init__()
-        WizardWindow.instance = self   # <— save singleton
+        WizardWindow.instance = self
 
         self.setWindowTitle("First-run setup")
         self.setFixedSize(540, 460)
@@ -44,18 +43,19 @@ class WizardWindow(QWidget):
             self.setWindowIcon(QIcon(str(icon_path)))
 
         self.cfg = load_config()
+        self.auto_jump_used = False   # <— prevents jump-loop on Back
 
-        # ---------------- Header
+        # -------- header
         self.header = QLabel("Welcome", self)
         self.header.setObjectName("wizardHeader")
         self.header.setAlignment(Qt.AlignCenter)
 
-        # ---------------- Progress
+        # -------- progress
         self.progress = QLabel("", self)
         self.progress.setObjectName("wizardProgress")
         self.progress.setAlignment(Qt.AlignCenter)
 
-        # ---------------- Steps
+        # -------- layout stack
         self.stack = QStackedLayout()
         self.steps = [
             StepWelcome(self),
@@ -67,10 +67,10 @@ class WizardWindow(QWidget):
         for s in self.steps:
             self.stack.addWidget(s)
 
-        # ---------------- Navigation buttons
+        # -------- nav buttons
         self.btn_back = QPushButton("← Back")
         self.btn_next = QPushButton("Next →")
-        self.btn_skip = QPushButton("Skip")
+        self.btn_skip = QPushButton("I’ll set this up later")
 
         self.btn_back.clicked.connect(self.on_back)
         self.btn_next.clicked.connect(self.on_next)
@@ -82,7 +82,7 @@ class WizardWindow(QWidget):
         nav.addWidget(self.btn_skip)
         nav.addWidget(self.btn_next)
 
-        # ---------------- Layout structure
+        # -------- root
         root = QVBoxLayout(self)
         root.setContentsMargins(18, 12, 18, 12)
         root.setSpacing(8)
@@ -106,22 +106,24 @@ class WizardWindow(QWidget):
 
         self.installEventFilter(self)
 
-    # ---------- ESC = Back
+    # -------- ESC = Back
     def eventFilter(self, obj, event):
         if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Escape:
             self.on_back()
             return True
         return super().eventFilter(obj, event)
 
-    # ---------- Step setter
+    # ---------------------------------------
     def set_step(self, i: int):
         i = max(0, min(i, len(self.steps) - 1))
         self.current = i
         self.stack.setCurrentIndex(i)
         self.update_ui()
 
-    # ---------- UI refresher
+    # ---------------------------------------
     def update_ui(self):
+        cfg = load_config()
+
         titles = [
             "Welcome",
             "Choose your WoW folder",
@@ -135,23 +137,31 @@ class WizardWindow(QWidget):
         self.header.setText(titles[self.current])
         self.progress.setText(" ".join(dots))
 
-        # Back availability
+        # Back
         self.btn_back.setVisible(self.current > 0)
 
-        # Skip available on Android App + Pairing
-        self.btn_skip.setVisible(self.current in (2, 3))
+        # Skip ONLY on step 3 (Pairing)
+        self.btn_skip.setVisible(self.current == 3)
 
-        # Hide Next on GAME FOLDER step (auto-advance)
-        self.btn_next.setVisible(self.current != 1)
+        # Next visibility logic:
+        if self.current == 1:
+            # WoW folder: show NEXT if already chosen
+            has_folder = bool(cfg.get("game_folder"))
+            self.btn_next.setVisible(has_folder)
+        elif self.current == 3:
+            # Pairing: hide next (auto)
+            self.btn_next.setVisible(False)
+        else:
+            self.btn_next.setVisible(True)
 
-        # Next -> Finish at last
+        # Next -> Finish
         self.btn_next.setText("Finish" if self.current == len(self.steps)-1 else "Next →")
 
         step = self.steps[self.current]
         if hasattr(step, "on_enter"):
             step.on_enter()
 
-    # ---------- Navigation
+    # ---------------------------------------
     def on_back(self):
         if self.current > 0:
             self.set_step(self.current - 1)
@@ -170,8 +180,12 @@ class WizardWindow(QWidget):
         self.set_step(self.current + 1)
 
     def on_skip(self):
-        self.set_step(self.current + 1)
+        # skip pairing → final
+        self.set_step(4)
 
-    # ---------- public: auto advance
-    def auto_next(self, delay_ms=200):
-        QTimer.singleShot(delay_ms, lambda: self.on_next())
+    # ---------------------------------------
+    def auto_next(self, delay_ms=600):
+        if self.auto_jump_used:
+            return
+        self.auto_jump_used = True
+        QTimer.singleShot(delay_ms, lambda: self.set_step(4))

@@ -4,9 +4,12 @@ from PySide6.QtCore import Qt, QTimer
 from ui.dialogs.pair_device import PairDeviceDialog
 from services import pairing
 
+
 class StepPairing(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.first_time_detected = False
+
         self._poll = QTimer(self)
         self._poll.setInterval(700)
         self._poll.timeout.connect(self._refresh)
@@ -19,7 +22,7 @@ class StepPairing(QWidget):
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("font-size:16px; font-weight:800;")
 
-        self.state = QLabel("Click below and scan the QR in the app.")
+        self.state = QLabel("Waiting for pairing…")
         self.state.setAlignment(Qt.AlignCenter)
         self.state.setWordWrap(True)
         self.state.setStyleSheet("color:#c9bda7;")
@@ -35,16 +38,22 @@ class StepPairing(QWidget):
         lay.addStretch()
 
     def open(self):
-        dlg = PairDeviceDialog(self)
-        dlg.exec()
+        PairDeviceDialog(self).exec()
 
     def _refresh(self):
         status = pairing.get_pairing_status()
+
         if status.get("paired"):
             self.state.setText("✅ Paired!")
-            # auto advance gently
-            self._poll.stop()
-            QTimer.singleShot(600, self.parent().go_next)
+
+            # -- AUTO ADVANCE: only once
+            if not self.first_time_detected:
+                self.first_time_detected = True
+                self._poll.stop()
+
+                # ⬇⬇ LAZY IMPORT HERE ⬇⬇
+                from ui.wizard.wizard_window import WizardWindow
+                WizardWindow.instance.auto_next(900)
         else:
             self.state.setText("Waiting for pairing…")
 

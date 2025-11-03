@@ -43,12 +43,11 @@ class StepGameFolder(QWidget):
         save_config(self.cfg)
         self.info.setText(self._fmt())
 
-        # ✅ Auto advance (correct)
         from ui.wizard.wizard_window import WizardWindow
         WizardWindow.instance.auto_next()
 
     def can_continue(self):
         ok = bool(self.cfg.get("game_folder"))
         if not ok:
-            self.info.setText(self._fmt() + "<br><span style='color:#ff7777'>Select the folder.</span>")
+            self.info.setText(self._fmt() + "<br><span style='color:#ff7777'>Select folder.</span>")
         return ok, "Select folder"
