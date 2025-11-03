@@ -1,4 +1,4 @@
-# file: desktop_app/ui/tabs/home_tab.py
+# file: desktop_app/ui/tabs/queue_tab.py
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QProgressBar,
@@ -14,7 +14,7 @@ BASE_DIR = Path(getattr(sys, "_MEIPASS",
 PORTAL_IMAGE_PATH = BASE_DIR / "assets" / "portal_icon.png"
 
 
-class HomeTab(QWidget):
+class QueueTab(QWidget):
     toggleRequested = Signal()
     resetRequested = Signal()
 

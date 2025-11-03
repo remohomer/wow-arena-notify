@@ -46,5 +46,5 @@ if __name__ == "__main__":
     window = MainWindow()
     window.show()
 
-    logger.info("🚀 Application started.")
+    logger.dev("🚀 Application started.")
     sys.exit(app.exec())

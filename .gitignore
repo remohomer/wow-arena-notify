@@ -1,101 +1,115 @@
-# .gitignore
-# ─────────────────────────────
-# 🌍 Global ignore
-# ─────────────────────────────
-__pycache__/
-**/__pycache__/
-*.log
-*.tmp
-*.bak
-*.pyc
-*.pyo
-*.pyd
+############################################
+# SYSTEM / EDITOR TRASH
+############################################
 .DS_Store
 Thumbs.db
-
-# ─────────────────────────────
-# 🧠 IDE & systemowe
-# ─────────────────────────────
-.vscode/
-.idea/
-*.iml
+*.tmp
+*.bak
 *.swp
 *.swo
 
-# ─────────────────────────────
-# 🐍 Python / PyInstaller
-# ─────────────────────────────
-**/dist/
-**/build/
+############################################
+# IDE
+############################################
+.vscode/
+.idea/
+*.iml
+
+############################################
+# PYTHON / PYSIDE
+############################################
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build artifacts (PyInstaller)
+desktop_app/dist/
+desktop_app/build/
+desktop_app/.pyinstaller_cache/
 *.spec
 *.egg-info/
 *.eggs/
-desktop_app/.pyinstaller_cache/
+
+# Virtualenvs
 venv/
 .venv/
-ENV/
 env/
-.env
-.env.*
+ENV/
+
+# Temporary scripts & tests
 test_env
 test_env.py
-verify_secret.py
+*_test.py
+tests/
+temp/
+tmp/
 
-# ─────────────────────────────
-# 💾 Firebase / sekrety / klucze
-# ─────────────────────────────
-# Firebase keys (admin SDK, JSON, encrypted)
-desktop_app/core/push/wow-arena-notify-firebase-adminsdk-*.json
-desktop_app/core/firebase_credentials.enc
+############################################
+# NODE / FIREBASE FUNCTIONS
+############################################
+desktop_app/functions/node_modules/
+desktop_app/functions/.firebase/
+desktop_app/functions/.runtime/
+desktop_app/functions/.cache/
+desktop_app/functions/test_*/
+
+############################################
+# SECRETS / ENV
+############################################
+.env
+.env.*
+desktop_app/.env
+desktop_app/core/.env
+
+# Keys / Certificates
+*.pem
+*.key
+*.crt
+*.enc
+
+# Firebase admin keys
+wow_addon/QueuePopNotify/firebase-adminsdk-*.json
+desktop_app/firebase_credentials.enc
+
+############################################
+# FIREBASE PROJECT FILES (LOCAL)
+############################################
 desktop_app/.firebaserc
 desktop_app/firebase.json
 
-# Secret environment
-desktop_app/.env
-desktop_app/core/.env
-*.key
-*.pem
-*.crt
-
-# ─────────────────────────────
-# ☁️ Firebase Functions (backend)
-# ─────────────────────────────
-desktop_app/functions/
-!desktop_app/functions/README.md  # ← jeśli chcesz zostawić tylko dokumentację
-
-# ─────────────────────────────
-# 🤖 Android Studio
-# ─────────────────────────────
+############################################
+# ANDROID STUDIO
+############################################
 android_app/.gradle/
 android_app/.idea/
 android_app/local.properties
 android_app/caches/
 android_app/app/build/
 android_app/build/
+android_app/.externalNativeBuild/
 android_app/app/release/
 android_app/app/debug/
-android_app/.externalNativeBuild/
+*.apk
+*.aab
 
-# Firebase key dla Androida
+# Service account
 android_app/app/google-services.json
 
 # Gradle wrapper cache
+.gradle/
 android_app/gradle/wrapper/gradle-wrapper.jar
-.gradle/
-.gradle/
 
-# ─────────────────────────────
-# 🎮 WoW Addon buildy
-# ─────────────────────────────
+############################################
+# WOW ADDON BUILD JUNK
+############################################
 wow_addon/QueuePopNotify/*.bak
 wow_addon/QueuePopNotify/*.zip
 
-# ─────────────────────────────
-# 🧪 Testy / sandboxy
-# ─────────────────────────────
-desktop_app/functions/test_*/
-desktop_app/test_*
-*_test.py
-tests/
-temp/
-tmp/
+############################################
+# LOGS
+############################################
+*.log
+*.toc.html
+*.toc.tmp

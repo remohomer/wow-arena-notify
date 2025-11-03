@@ -2,6 +2,7 @@
 
 from PySide6.QtCore import QTimer
 from infrastructure.logger import logger
+from infrastructure.config import load_config
 
 class CountdownController:
     def __init__(self, main_window):
@@ -11,18 +12,29 @@ class CountdownController:
         self.running = False
 
     def start(self, seconds: int):
+        """
+        Start a countdown using the *latest* values stored in config.json.
+        This allows runtime changes without restarting the app.
+        """
         try:
             self.stop()
-            self.remaining = max(int(seconds), 1)
+
+            # ✅ Always refresh config dynamically
+            cfg = load_config()
+            configured = int(cfg.get("countdown_time", seconds))
+            self.remaining = max(configured, 1)  # fallback sanity
+
             self.running = True
 
-            self.main.home_tab.start_countdown_ui(self.remaining)
-            self.main.home_tab.update_countdown_ui(self.remaining)
+            self.main.queue_tab.start_countdown_ui(self.remaining)
+            self.main.queue_tab.update_countdown_ui(self.remaining)
 
             self.timer = QTimer(self.main)
             self.timer.timeout.connect(self._tick)
             self.timer.start(1000)
-            logger.info(f"⏱ Countdown started: {self.remaining}s")
+
+            logger.user(f"⏱ Countdown started: {self.remaining}s")
+
         except Exception as e:
             logger.error(f"❌ CountdownController.start(): {e}")
 
@@ -34,16 +46,17 @@ class CountdownController:
             self.remaining -= 1
 
             if self.remaining > 0:
-                self.main.home_tab.update_countdown_ui(self.remaining)
+                self.main.queue_tab.update_countdown_ui(self.remaining)
                 return
 
-            # == 0 ==
+            # == 0 seconds ==
             self.stop(hide_only=False)
-            self.main.home_tab.set_status("⚔️ FIGHT!", "#ff4444", big=True)
+            self.main.queue_tab.set_status("⚔️ FIGHT!", "#ff4444", big=True)
 
+            # Auto-restore listening mode after 2s
             def restore():
                 if self.main.listener and self.main.listener.is_running:
-                    self.main.home_tab.set_listening(True)
+                    self.main.queue_tab.set_listening(True)
 
             fin = QTimer(self.main)
             fin.setSingleShot(True)
@@ -60,6 +73,7 @@ class CountdownController:
                 self.timer = None
 
             self.running = False
-            self.main.home_tab.stop_countdown_ui(reset_status_to_listening=False)
+            self.main.queue_tab.stop_countdown_ui(reset_status_to_listening=False)
+
         except Exception as e:
             logger.error(f"❌ CountdownController.stop(): {e}")

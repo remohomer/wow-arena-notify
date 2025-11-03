@@ -1,9 +1,5 @@
-# file: desktop_app/services/push/arena_realtime.py
-# ✅ No service account required
-# ✅ Uses CredentialsProvider for RTDB URL
-# ✅ Pure HTTPS (REST) write to Firebase
-# ✅ Fully compatible with old function signature
-
+# -*- coding: utf-8 -*-
+# RTDB REST write (fallback / complement to pushArena)
 import time
 import requests
 from typing import Optional
@@ -11,11 +7,8 @@ from infrastructure.logger import logger
 from services.time_sync import get_firebase_server_time
 from infrastructure.credentials_provider import CredentialsProvider
 
-
 def _safe_token_for_path(token: str) -> str:
-    """Firebase RTDB paths cannot contain ':', so replace with '_'."""
     return (token or "").replace(":", "_")
-
 
 def send_arena_event(
     event_type: str,
@@ -24,28 +17,19 @@ def send_arena_event(
     event_id: str,
     cfg: Optional[dict] = None,
 ) -> dict | None:
-    """
-    Publish an arena event to Firebase Realtime Database using REST API.
-    Uses Firebase server time (from .info/serverTimeOffset).
-    Returns the payload on success.
-    """
-
     creds = CredentialsProvider()
     rtdb_url = creds.get_rtdb_url()
-
     if not rtdb_url:
-        logger.error("❌ No RTDB_URL available in environment or defaults.")
+        logger.user("RTDB URL not configured.")
         return None
     if not pairing_id:
-        logger.warning("⚠ Empty pairing_id passed to send_arena_event().")
+        logger.dev("send_arena_event called with empty pairing_id")
         return None
 
     try:
         safe_token = _safe_token_for_path(pairing_id)
-        base_url = rtdb_url.rstrip("/")
-        path_url = f"{base_url}/arena_events/{safe_token}/current.json"
+        path_url = f"{rtdb_url.rstrip('/')}/arena_events/{safe_token}/current.json"
 
-        # Calculate server-aligned timestamps
         server_now_ms = get_firebase_server_time(cfg=cfg)
         adjusted_seconds = max(int(duration_sec), 0)
         ends_at_ms = server_now_ms + adjusted_seconds * 1000
@@ -55,27 +39,21 @@ def send_arena_event(
             "type": event_type,
             "eventId": event_id,
             "endsAt": ends_at_ms,
-            "timestamp": server_now_ms,  # write time in server clock
-            "updatedAt": int(time.time() * 1000),  # 🔹 NEW — ensures onDataChange always fires
+            "timestamp": server_now_ms,
+            "updatedAt": int(time.time() * 1000),
         }
-        logger.info(
-            f"📨 RTDB REST → {event_type} (id={event_id}) "
-            f"@ /arena_events/{safe_token}/current (serverNow={server_now_ms}, updatedAt={payload['updatedAt']})"
-        )
 
+        logger.dev(f"RTDB PUT {event_type} endsAt={ends_at_ms} url={path_url}")
         resp = requests.put(path_url, json=payload, timeout=5)
         if resp.ok:
-            logger.info(
-                f"📨 RTDB REST → {event_type} (id={event_id}) "
-                f"@ /arena_events/{safe_token}/current (serverNow={server_now_ms})"
-            )
+            logger.dev("RTDB write OK")
             return payload
-        else:
-            logger.error(
-                f"❌ RTDB REST write failed ({resp.status_code}): {resp.text[:120]}"
-            )
-            return None
+
+        logger.user(f"RTDB write rejected ({resp.status_code})")
+        logger.dev(resp.text[:200])
+        return None
 
     except Exception as e:
-        logger.error(f"❌ RTDB write failed ({event_type}, eventId={event_id}): {e}")
+        logger.user("RTDB write error")
+        logger.dev(f"RTDB exception: {e}")
         return None

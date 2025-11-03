@@ -114,7 +114,7 @@ class PairDeviceDialog(QDialog):
 
     def on_success(self):
         self.stop_flag.set()
-        logger.info("✅ Device paired successfully — closing dialog.")
+        logger.dev("✅ Device paired successfully — closing dialog.")
         self.accept()  # 🔥 natywne zamknięcie dialogu
 
     def closeEvent(self, event):

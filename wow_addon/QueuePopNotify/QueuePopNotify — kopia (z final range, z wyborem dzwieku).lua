@@ -18,7 +18,7 @@ ensure("listening",       true)
 ensure("soundEnabled",    true)
 ensure("screenshotDelay", 2)
 ensure("rimThickness",    2)
-ensure("ReadyCheck")
+ensure("selectedSound",   "ReadyCheck")
 ensure("uiErrorsEnabled", true)
 ensure("finalRange",      10)
 ensure("downloadLink",    "https://example.com/android")
@@ -35,7 +35,7 @@ QueuePopNotifyDB.rimThickness    = clamp(QueuePopNotifyDB.rimThickness,2,20)
 
 -- ===================== Utils =============================
 local function Print(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99QP:|r "..tostring(msg))
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99QPN:|r "..tostring(msg))
 end
 
 local function Delay(sec, fn)
@@ -55,10 +55,20 @@ local function NotifyUI(msg)
     end
 end
 
+-- Sounds (safe)
+local SOUND_LIST = {
+    { key="ReadyCheck", label="ReadyCheck (default)", path="Sound\\Interface\\ReadyCheck.wav" },
+    { key="RaidWarning",label="Raid Warning",         path="Sound\\Interface\\RaidWarning.wav" },
+    { key="Auction",    label="Auction Won",          path="Sound\\Interface\\AuctionWindowOpen.wav" },
+}
 
 local function PlaySoundIfEnabled()
     if not QueuePopNotifyDB.soundEnabled then return end
-    PlaySoundFile("Sound\\Interface\\ReadyCheck.wav", "SFX")
+    for _,s in ipairs(SOUND_LIST) do
+        if s.key == QueuePopNotifyDB.selectedSound then
+            PlaySoundFile(s.path,"SFX")
+        end
+    end
 end
 
 local SOUND_RAID = "Sound\\Interface\\RaidWarning.wav"
@@ -336,6 +346,14 @@ local uiFL   = check("Show chat messages")
 local sndA   = check("Enable sound alert")
 y = y - 8
 
+-- Sound dropdown
+label("Sound alert on popup:")
+local soundDrop = CreateFrame("Frame","QPN_SoundDrop",content,"UIDropDownMenuTemplate")
+soundDrop:SetPoint("TOPLEFT",16,y-4)
+UIDropDownMenu_SetWidth(soundDrop,150)
+UIDropDownMenu_JustifyText(soundDrop,"LEFT")
+y = y - 36
+
 -- Final range slider
 label("Final range:")
 local frSlider = CreateFrame("Slider","QPN_FinalRangeSlider",content,"OptionsSliderTemplate")
@@ -410,6 +428,22 @@ y = y - 140
 
 content:SetHeight(-y+40)
 
+-- Dropdown init
+local function dropdownInit()
+    local info = UIDropDownMenu_CreateInfo()
+    for _,s in ipairs(SOUND_LIST) do
+        info.text  = s.label
+        info.value = s.key
+        info.func  = function()
+            QueuePopNotifyDB.selectedSound = s.key
+            UIDropDownMenu_SetText(soundDrop, s.label)
+            PlaySoundFile(s.path, "SFX")
+        end
+        UIDropDownMenu_AddButton(info)
+    end
+end
+UIDropDownMenu_Initialize(soundDrop, dropdownInit)
+
 -- Wire UI (SAFE: SetText uses strings)
 panel:SetScript("OnShow",function()
     enable:SetChecked(QueuePopNotifyDB.enabled)
@@ -423,6 +457,7 @@ panel:SetScript("OnShow",function()
     linkBox:SetText(tostring(QueuePopNotifyDB.downloadLink or "")) -- <- STRING
     qr:SetTexture("Interface\\AddOns\\QueuePopNotify\\media\\"..(QueuePopNotifyDB.qr_android or ""))
 
+    UIDropDownMenu_SetText(soundDrop, QueuePopNotifyDB.selectedSound)
     rimValue:SetText(QueuePopNotifyDB.rimThickness.."px")
     delayValue:SetText(QueuePopNotifyDB.screenshotDelay.."s")
     frValue:SetText(QueuePopNotifyDB.finalRange.."s")
@@ -474,6 +509,7 @@ reset:SetScript("OnClick",function()
     QueuePopNotifyDB.soundEnabled   = true
     QueuePopNotifyDB.uiErrorsEnabled= true
     QueuePopNotifyDB.screenshotDelay= 2
+    QueuePopNotifyDB.selectedSound  = "ReadyCheck"
     QueuePopNotifyDB.downloadLink   = "https://example.com/android"
     QueuePopNotifyDB.finalRange     = 10
     QueuePopNotifyDB.rimThickness   = 2

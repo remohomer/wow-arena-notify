@@ -1,5 +1,4 @@
-# file: desktop_app/controllers/listener_controller.py
-
+# -*- coding: utf-8 -*-
 import time
 from PySide6.QtCore import QTimer
 from infrastructure.logger import logger
@@ -28,38 +27,37 @@ class ListenerController:
         self._cooldown_until = 0
         self.pulse_state = False
 
-    # ------------------------------
     def start(self):
         self.reset_runtime_state()
         self.is_running = True
-        self.main.home_tab.set_listening(True)
+        self.main.queue_tab.set_listening(True)
 
         _, self.last_screenshot_time = get_latest_screenshot_info(self.main.game_folder)
         self.high_watermark = self.last_screenshot_time or 0
 
         self.timer.start(1000)
         self.pulse_timer.start(500)
+        logger.user("▶️ Listening started.")
 
     def stop(self):
         self.is_running = False
-        self.main.home_tab.set_listening(False)
-        self.main.home_tab.set_paused_status()
+        self.main.queue_tab.set_listening(False)
+        self.main.queue_tab.set_paused_status()
         self.timer.stop()
         self.pulse_timer.stop()
         self.main.countdown.stop()
+        logger.user("⏹ Listening stopped.")
 
-    # ------------------------------
     def animate_status(self):
         if not self.is_running:
             return
-        lbl = self.main.home_tab.status_label
+        lbl = self.main.queue_tab.status_label
         txt = lbl.text().rstrip('.')
         if "FIGHT" in lbl.text():
             return
         lbl.setText(txt + '.' if not self.pulse_state else txt)
         self.pulse_state = not self.pulse_state
 
-    # ------------------------------
     def check_screenshots(self):
         if not self.is_running or not self.main.game_folder:
             return
@@ -74,7 +72,6 @@ class ListenerController:
         if ts < self.app_start_time or ts <= self.high_watermark:
             return
 
-        # debounce by size & time
         try:
             size = path.stat().st_size
             prev = self._recent.get(str(path))
@@ -88,29 +85,23 @@ class ListenerController:
         self.high_watermark = ts
         self.last_screenshot_time = ts
 
-        if self.print_listener.is_recent(ts):
-            return
-
+        # manual-screenshot check removed permanently
         result = arena_logic.process_screenshot_event(
             path, self.main.cfg, app_start_time=self.app_start_time
         )
 
         if result == "arena_pop":
-            self.main.home_tab.set_status("⚔️ Arena queue popped!", "#ffaa00", big=False)
-
-            # używamy wartości policzonej przez arena_logic
+            self.main.queue_tab.set_status("⚔️ Arena queue popped!", "#ffaa00", big=False)
             adjusted = max(int(self.main.cfg.get("countdown_time", 40))
                            - int(self.main.cfg.get("delay_offset", 2))
                            - 1, 1)
-
             self.main.countdown.start(adjusted)
 
         elif result == "arena_stop":
             self.main.countdown.stop()
-            self.main.home_tab.set_status("⚔️ FIGHT!", "#ff4444", big=True)
+            self.main.queue_tab.set_status("⚔️ FIGHT!", "#ff4444", big=True)
             QTimer.singleShot(2000, self.restore_status)
 
     def restore_status(self):
-        # poprawka: countdown.running, nie .active
         if self.is_running and not self.main.countdown.running:
-            self.main.home_tab.set_listening(True)
+            self.main.queue_tab.set_listening(True)

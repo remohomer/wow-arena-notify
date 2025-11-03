@@ -1,16 +1,18 @@
-# file: desktop_app/services/firebase_notify.py
-# ✅ Dynamic pushArena URL (from CredentialsProvider)
-# ✅ Secure HMAC-SHA256 signature
-# ✅ Full diagnostics and clean fallback
-# ✅ Works without local Firebase credentials file
+# -*- coding: utf-8 -*-
+"""
+Clean pushArena sender with:
+ - minimal user logs
+ - optional developer diagnostics
+ - full payload only on error
+"""
 
-import time
 import uuid
 import hmac
 import hashlib
 import json
 import requests
 from typing import Optional
+
 from infrastructure.logger import logger
 from services.time_sync import get_firebase_server_time, get_server_offset
 from infrastructure.credentials_provider import CredentialsProvider
@@ -21,7 +23,11 @@ from infrastructure.credentials_provider import CredentialsProvider
 # -------------------------------------------------------------------------
 def _generate_signature(secret: str, message: str) -> str:
     """Generate HMAC-SHA256 signature for canonical JSON payload."""
-    return hmac.new(secret.encode("utf-8"), message.encode("utf-8"), hashlib.sha256).hexdigest()
+    return hmac.new(
+        secret.encode("utf-8"),
+        message.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
 
 
 # -------------------------------------------------------------------------
@@ -38,10 +44,13 @@ def send_fcm_message(
     """
     Sends an event (arena_pop, arena_stop) to Cloud Function `pushArena`
     using HMAC authentication and consistent JSON serialization.
+
+    Minimal logs for normal operation.
+    Extra diagnostics only in debug_mode.
     """
 
     if not cfg:
-        logger.error("❌ send_fcm_message() called without config (cfg).")
+        logger.error("❌ send_fcm_message() missing config.")
         return False
 
     # --- Load shared secret and push URL ---
@@ -50,20 +59,19 @@ def send_fcm_message(
     push_url = creds.get_push_arena_url()
 
     if not secret:
-        logger.error("❌ Missing WOW_SECRET in environment.")
+        logger.error("❌ Environment: WOW_SECRET missing.")
         return False
     if not push_url:
-        logger.error("❌ Missing PUSH_ARENA_URL in environment or defaults.")
+        logger.error("❌ PUSH_ARENA_URL missing.")
         return False
 
-    # --- Generate event metadata ---
+    # --- Metadata ---
     event_id = event_id or str(uuid.uuid4())
     server_time_ms = get_firebase_server_time(cfg=cfg)
     desktop_offset_ms = get_server_offset(cfg)
     adjusted_seconds = max(int(seconds), 0)
     ends_at_ms = server_time_ms + adjusted_seconds * 1000
 
-    # --- Build canonical payload ---
     payload = {
         "schema": "1",
         "type": str(event_type),
@@ -77,48 +85,46 @@ def send_fcm_message(
         "desktopOffset": str(desktop_offset_ms),
     }
 
+    # Canonical JSON
     msg = json.dumps(payload, separators=(",", ":"), ensure_ascii=False, sort_keys=True)
     signature = _generate_signature(secret, msg)
     msg_bytes = msg.encode("utf-8")
 
-    # --- Diagnostics ---
-    secret_hash = hashlib.sha256(secret.encode("utf-8")).hexdigest()[:16]
-    logger.info("────────────────────────────────────────────────────────────")
-    logger.info(f"🔎 PUSH DIAGNOSTICS ({event_type.upper()}):")
-    logger.info(f"  🌐 pushArena URL: {push_url}")
-    logger.info(f"  🔑 CLIENT SECRET HASH: {secret_hash}")
-    logger.info(f"  🕒 Server time: {server_time_ms}")
-    logger.info(f"  🖥️ Desktop offset: {desktop_offset_ms} ms")
-    logger.info(f"  🎯 endsAt: {ends_at_ms}")
-    logger.info(f"  🔑 eventId: {event_id}")
-    logger.info(f"  📦 Payload length: {len(msg_bytes)} bytes")
-    logger.info("────────────────────────────────────────────────────────────")
-    logger.info(f"🧾 Canonical JSON → {msg}")
-    logger.info(f"🔐 FULL HMAC: {signature}")
-    logger.info(f"🔐 HMAC (short): {signature[:16]}...{signature[-16:]}")
+    secret_hash = hashlib.sha256(secret.encode("utf-8")).hexdigest()[:12]
 
-    # --- HTTPS POST ---
+    logger.dev(f"pushArena event_type={event_type} adjusted_seconds={adjusted_seconds}s")
+    logger.dev(f"id={event_id} url={push_url} len={len(msg_bytes)} off={desktop_offset_ms} secret={secret_hash}")
+
     headers = {
         "Content-Type": "application/json; charset=utf-8",
         "X-Signature": signature,
     }
 
     try:
-        logger.info(f"🌍 Sending pushArena → {push_url}")
         response = requests.post(
             push_url,
             data=msg_bytes,
             headers=headers,
             timeout=10,
         )
-
         if response.status_code == 200:
-            logger.info(f"✅ pushArena OK: event={event_type}, id={event_id}")
+            logger.dev("POST OK (200)")
             return True
-        else:
-            logger.error(f"❌ pushArena rejected ({response.status_code}): {response.text}")
-            return False
+
+        # ------------------ ERROR DETAIL ------------------
+        logger.error(f"❌ pushArena rejected ({response.status_code})")
+        logger.dev(f"resp: {response.text}")
+
+        # Full payload only when error:
+        logger.dev(f"payload: {msg}")
+        logger.dev(f"hmac: {signature}")
+
+        return False
 
     except Exception as e:
         logger.error(f"❌ pushArena HTTPS error: {str(e)}")
+
+        logger.dev(f"payload: {msg}")
+        logger.dev(f"hmac: {signature}")
+
         return False

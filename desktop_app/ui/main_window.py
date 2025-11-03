@@ -17,7 +17,7 @@ from controllers.tray_controller import TrayController
 
 from ui.style_loader import apply_styles
 
-from ui.tabs.home_tab import HomeTab
+from ui.tabs.queue_tab import QueueTab
 from ui.tabs.logs_tab import LogsTab
 from ui.tabs.tester_tab import TesterTab
 from ui.tabs.pairing_tab import PairingTab
@@ -55,23 +55,26 @@ class MainWindow(QWidget):
         self.tabs = QTabWidget(self)
         self.tabs.setTabPosition(QTabWidget.North)
 
-        self.home_tab = HomeTab(self, self.cfg)
+        self.queue_tab = QueueTab(self, self.cfg)
         self.pairing_tab = PairingTab(self)
         self.logs_tab = LogsTab(self)
         self.tester_tab = TesterTab(self, self.cfg)
         self.settings_tab = SettingsTab(self)
 
-        self.tabs.addTab(self.home_tab, "🏠 Home")
+
+        self.tabs.addTab(self.queue_tab, "🕒 Queue")
         self.tabs.addTab(self.pairing_tab, "🔗 Pairing")
         self.tabs.addTab(self.logs_tab, "🧾 Logs")
-        self.tabs.addTab(self.tester_tab, "🧪 Tester")
         self.tabs.addTab(self.settings_tab, "⚙️ Settings")
+        if self.cfg.get("debug_mode", False):
+            self.tabs.addTab(self.tester_tab, "🧪 Tester")
 
         root = QVBoxLayout(self)
+        root.setContentsMargins(0, 40, 0, 0)
         root.addWidget(self.tabs)
 
-        self.home_tab.toggleRequested.connect(self.toggle_listening)
-        self.home_tab.resetRequested.connect(self.handle_reset)
+        self.queue_tab.toggleRequested.connect(self.toggle_listening)
+        self.queue_tab.resetRequested.connect(self.handle_reset)
 
         apply_styles(self)
 
@@ -101,7 +104,7 @@ class MainWindow(QWidget):
     # ------------------------------ reset
     def handle_reset(self):
         self.countdown.stop()
-        self.home_tab.reset_ui()
+        self.queue_tab.reset_ui()
 
     # ------------------------------ tray restore
     def restore_from_tray(self):
@@ -121,10 +124,10 @@ class MainWindow(QWidget):
         msg = QMessageBox(self)
         msg.setWindowTitle("WoW Arena Notify")
         msg.setText("Exit or minimize to tray?")
-        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-        msg.button(QMessageBox.Yes).setText("❌ Exit")
-        msg.button(QMessageBox.No).setText("🪄 Minimize to tray")
+        msg.setStandardButtons(QMessageBox.Cancel | QMessageBox.No | QMessageBox.Yes)
         msg.button(QMessageBox.Cancel).setText("Cancel")
+        msg.button(QMessageBox.No).setText("🪄 Minimize to tray")
+        msg.button(QMessageBox.Yes).setText("❌ Exit")
 
         res = msg.exec()
         if res == QMessageBox.No:

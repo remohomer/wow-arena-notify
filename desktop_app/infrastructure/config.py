@@ -1,8 +1,8 @@
-# file: desktop_app/infrastructure/config.py
-# ✅ Generates persistent desktop_id (UUID4)
-# ✅ Cleans legacy keys automatically
+# -*- coding: utf-8 -*-
+# ✅ Persistent desktop_id (UUID4)
 # ✅ Safe load/save with fallback defaults
-# ✅ Compatible with all modules (pairing, watcher, ui)
+# ✅ Quiet save (no spam)
+# ✅ English logs only
 
 import json
 import os
@@ -11,13 +11,14 @@ from pathlib import Path
 from typing import Dict
 from infrastructure.logger import logger
 
+
 # -------------------------------------------------------
-# 📂 Lokalizacja pliku konfiguracyjnego
+# AppData location:
 # C:\Users\<USER>\AppData\Local\WoWArenaNotify\config.json
 # -------------------------------------------------------
 
 def get_appdata_dir() -> Path:
-    """Zwraca ścieżkę do folderu AppData\\Local\\WoWArenaNotify (tworzy jeśli nie istnieje)."""
+    """Return AppData\\Local\\WoWArenaNotify (create if missing)."""
     appdata = Path(os.getenv("APPDATA") or Path.home() / "AppData/Roaming")
     local_appdata = Path(os.getenv("LOCALAPPDATA", appdata))
     app_dir = local_appdata / "WoWArenaNotify"
@@ -28,30 +29,31 @@ def get_appdata_dir() -> Path:
 APP_DIR: Path = get_appdata_dir()
 CONFIG_FILE: Path = APP_DIR / "config.json"
 
-# 🔹 Udostępnij ścieżkę w zmiennej środowiskowej
+# Expose the path to logger and others
 os.environ["WOW_ARENA_NOTIFY_CONFIG"] = str(CONFIG_FILE.resolve())
 
+
 # -------------------------------------------------------
-# ⚙️ Konfiguracja domyślna
+# Default config
 # -------------------------------------------------------
 
 DEFAULT_CFG: Dict[str, object] = {
     "game_folder": "",
-    "countdown_time": 40,
+    "countdown_time": 36,
     "pairing_id": "",
     "device_id": "",
     "device_secret": "",
-    "desktop_id": "",        # zostanie wygenerowany automatycznie
-    "run_in_background": False,
-    "debug_mode": "true"
+    "desktop_id": "",
+    "delay_offset": 2
 }
 
+
 # -------------------------------------------------------
-# ⚙️ Główne funkcje
+# Helpers
 # -------------------------------------------------------
 
 def ensure_desktop_id(cfg: dict) -> dict:
-    """Generuje lokalny identyfikator komputera, jeśli nie istnieje."""
+    """Generate persistent local desktop_id if missing."""
     if not cfg.get("desktop_id"):
         cfg["desktop_id"] = str(uuid.uuid4())
         save_config(cfg)
@@ -59,8 +61,12 @@ def ensure_desktop_id(cfg: dict) -> dict:
     return cfg
 
 
+# -------------------------------------------------------
+# Load / Save
+# -------------------------------------------------------
+
 def load_config() -> dict:
-    """Wczytuje konfigurację z pliku lub tworzy nową z wartości domyślnych."""
+    """Load config from disk or use defaults."""
     data: Dict[str, object] = {}
 
     try:
@@ -73,35 +79,33 @@ def load_config() -> dict:
         logger.warning(f"⚠ Could not read config.json: {e}")
         data = {}
 
-    # Usuń przestarzałe pola
+    # Remove legacy keys
     for legacy_key in ["firebase_sa_path", "rtdb_url"]:
         if legacy_key in data:
             data.pop(legacy_key, None)
-            logger.info(f"🧹 Removed legacy field '{legacy_key}' from config.")
+            logger.info(f"🧹 Removed legacy field '{legacy_key}'.")
 
-    # Uzupełnij brakujące wartości domyślne
     cfg = {**DEFAULT_CFG, **data}
-
-    # Wygeneruj desktop_id jeśli brakuje
     cfg = ensure_desktop_id(cfg)
 
-    # Zapisz nowy plik jeśli jeszcze nie istnieje
+    # Save if file missing (first run)
     if not CONFIG_FILE.exists():
         save_config(cfg)
 
-    logger.info(f"✅ Config loaded from {CONFIG_FILE}")
+    logger.dev(f"⚙️ Config loaded from {CONFIG_FILE}")
     return cfg
 
 
 def save_config(cfg: dict):
-    """Zapisuje konfigurację do pliku AppData (bezpiecznie, z fallbackiem)."""
+    """Save config silently (no user spam)."""
     try:
-        # Dopilnuj wszystkich kluczy
         for k, v in DEFAULT_CFG.items():
             cfg.setdefault(k, v)
 
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=4, ensure_ascii=False)
-        logger.info(f"💾 Config saved to {CONFIG_FILE}")
+
+        # ✅ No log.success here (no spam)
+
     except Exception as e:
         logger.error(f"❌ Failed to save config.json: {e}")

@@ -27,7 +27,7 @@ def apply_styles(widget):
         if p.exists():
             with open(p, "r", encoding="utf-8") as f:
                 widget.setStyleSheet(f.read())
-            logger.info(f"🎨 Loaded style: {p}")
+            logger.dev(f"🎨 Loaded style: {p}")
             return
 
     logger.warning("⚠ Could not find styles.qss")

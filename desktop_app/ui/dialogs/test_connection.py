@@ -1,7 +1,6 @@
 # file: desktop_app/ui/dialogs/test_connection.py
-# ✅ Uses CredentialsProvider.get_push_arena_url()
-# ✅ Canonical HMAC signing (same as firebase_notify)
-# ✅ Improved logging & error clarity
+# ✅ Sanitized logging
+# ✅ No secrets, URLs, pairing_id leaks
 
 import json
 import hmac
@@ -17,10 +16,10 @@ from infrastructure.credentials_provider import CredentialsProvider
 def run_test(parent=None):
     """
     Sends a lightweight test event via Cloud Function (pushArena).
-    Uses WOW_SECRET (HMAC authentication) and pairing_id (no FCM token needed).
+    Sanitized logs (no secrets, URLs, pairing_id, HMAC fragments).
     """
 
-    logger.info("🚦 Test connection clicked.")
+    logger.info("🔌 Test connection triggered.")
 
     try:
         # --- Load config & pairing ID ---
@@ -35,7 +34,7 @@ def run_test(parent=None):
             )
             return
 
-        # --- Load environment & credentials ---
+        # --- Credentials ---
         provider = CredentialsProvider()
         secret = provider.get_secret()
         push_url = provider.get_push_arena_url()
@@ -44,11 +43,11 @@ def run_test(parent=None):
             QMessageBox.warning(
                 parent,
                 "Missing Secret",
-                "⚠ No WOW_SECRET found in environment.\nCloud push cannot be authenticated.",
+                "⚠ No WOW_SECRET found in environment.",
             )
             return
 
-        # --- Build minimal payload ---
+        # --- Payload ---
         event_id = str(uuid.uuid4())
         payload = {
             "schema": "1",
@@ -61,24 +60,28 @@ def run_test(parent=None):
             "sentAtMs": "0",
         }
 
-        # --- Canonical JSON & HMAC ---
-        canonical_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False, sort_keys=True)
-        signature = hmac.new(secret.encode("utf-8"), canonical_json.encode("utf-8"), hashlib.sha256).hexdigest()
-        secret_hash = hashlib.sha256(secret.encode("utf-8")).hexdigest()[:16]
+        canonical_json = json.dumps(
+            payload,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            sort_keys=True
+        )
 
-        # --- Logging ---
-        logger.info("──────────────────────────────────────────────")
-        logger.info("🔎 TEST CONNECTION PAYLOAD:")
-        logger.info(canonical_json)
-        logger.info(f"🔑 CLIENT SECRET HASH: {secret_hash}")
-        logger.info(f"🔐 HMAC: {signature[:16]}...{signature[-16:]}")
-        logger.info(f"🌍 pushArena URL: {push_url}")
-        logger.info("──────────────────────────────────────────────")
+        signature = hmac.new(
+            secret.encode("utf-8"),
+            canonical_json.encode("utf-8"),
+            hashlib.sha256
+        ).hexdigest()
+
+        # --- Sanitized Logging ---
+        logger.info("📡 Sending test connection event...")
+        logger.dev(f"🧾 Payload schema: {payload['schema']}")
+        logger.dev(f"📨 Event ID: {event_id}")
 
         # --- Send request ---
         response = requests.post(
             push_url,
-            data=canonical_json.encode("utf-8"),  # surowy JSON w bajtach
+            data=canonical_json.encode("utf-8"),
             headers={
                 "Content-Type": "application/json; charset=utf-8",
                 "X-Signature": signature,
@@ -88,16 +91,20 @@ def run_test(parent=None):
 
         # --- Response handling ---
         if response.status_code == 200:
-            logger.info(f"✅ Test push sent successfully: {response.text}")
-            QMessageBox.information(parent, "Test Connection", "✅ Test message sent successfully!")
+            logger.info("✅ Test push sent successfully.")
+            QMessageBox.information(
+                parent,
+                "Test Connection",
+                "✅ Test message sent successfully!",
+            )
         else:
-            logger.error(f"❌ Test push failed ({response.status_code}): {response.text}")
+            logger.error(f"❌ Test push failed ({response.status_code})")
             QMessageBox.warning(
                 parent,
                 "Test Connection",
-                f"❌ Request failed ({response.status_code}):\n{response.text[:500]}",
+                f"❌ Request failed ({response.status_code})",
             )
 
     except Exception as e:
-        logger.exception("❌ Test connection failed.")
+        logger.exception("❌ Test connection failed (sanitized).")
         QMessageBox.critical(parent, "Error", f"Failed to send test message:\n{e}")

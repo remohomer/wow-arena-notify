@@ -1,9 +1,9 @@
-# file: desktop_app/services/arena_logic.py
+# -*- coding: utf-8 -*-
 """
-Full-border tag detection | removes only processed screenshots
+Full-border tag detection | removes processed screenshots
 • POP → start countdown + delete screenshot
 • STOP → stop countdown + delete screenshot
-• Manual / No Tag → ignore but KEEP file
+• No Tag → keep file
 """
 
 import os
@@ -17,17 +17,17 @@ from infrastructure.logger import logger
 from services.tag_detector import detect_tag
 from infrastructure.utils import safe_delete, PrintScreenListener
 
+# stub always returns False
 printscreen = PrintScreenListener()
 
 _last_event_type: str | None = None
 _last_event_id: str | None = None
 _last_processed_timestamp = 0.0
-_countdown_active = False     # ← ważne!
+_countdown_active = False
 
 _stats = {
     "arena_pop": 0,
     "arena_stop": 0,
-    "ignored_manual": 0,
     "ignored_no_tag": 0,
     "ignored_duplicates": 0,
     "ignored_old": 0,
@@ -52,14 +52,8 @@ def process_screenshot_event(file_path: Path, cfg: dict, app_start_time: float =
 
         event = detect_tag(str(file_path))
 
-        if printscreen.is_recent(modified):
-            _stats["ignored_manual"] += 1
-            logger.info(f"⚪ Manual Screenshot ignored → {file_path.name}")
-            return ""
-
         if not event:
             _stats["ignored_no_tag"] += 1
-            logger.info(f"⚪ No tag → keeping file: {file_path.name}")
             return ""
 
         if event == _last_event_type and (now - _last_processed_timestamp) < 1.2:
@@ -71,18 +65,18 @@ def process_screenshot_event(file_path: Path, cfg: dict, app_start_time: float =
 
         pairing_id = cfg.get("pairing_id") or "test_desktop"
 
-        # ----------------- POP -----------------
+        # POP
         if event == "arena_pop":
             base = int(cfg.get("countdown_time", 40))
             user_offset = int(cfg.get("delay_offset", 2))
-
-            real_offset = user_offset + 1    # ← zawsze +1
+            real_offset = user_offset + 1
             adjusted = max(base - real_offset, 1)
 
             _last_event_id = str(uuid.uuid4())
-            _countdown_active = True         # ← fix!
+            _countdown_active = True
 
-            logger.info(f"🟢 arena_pop | {adjusted}s | {file_path.name}")
+            logger.user(f"🏁 Arena found!")
+            logger.dev(f"POP file={file_path.name}, base={base}, offset={user_offset}+1 → {adjusted}")
 
             if not send_fcm_message("arena_pop", adjusted, _last_event_id, pairing_id=pairing_id, cfg=cfg):
                 send_arena_event("arena_pop", adjusted, pairing_id, _last_event_id, cfg)
@@ -91,9 +85,9 @@ def process_screenshot_event(file_path: Path, cfg: dict, app_start_time: float =
             safe_delete(file_path)
             return "arena_pop"
 
-        # ----------------- STOP -----------------
+        # STOP
         if event == "arena_stop" and _countdown_active:
-            logger.info(f"🔴 arena_stop | {file_path.name}")
+            logger.user("⚔️ Entered arena — fight!")
 
             if not _last_event_id:
                 _last_event_id = str(uuid.uuid4())
@@ -103,7 +97,7 @@ def process_screenshot_event(file_path: Path, cfg: dict, app_start_time: float =
 
             _stats["arena_stop"] += 1
             _last_event_id = None
-            _countdown_active = False        # ← fix!
+            _countdown_active = False
 
             safe_delete(file_path)
             return "arena_stop"
@@ -113,14 +107,13 @@ def process_screenshot_event(file_path: Path, cfg: dict, app_start_time: float =
 
     except Exception as e:
         _stats["errors"] += 1
-        logger.error(f"❌ process_screenshot_event: {e}")
+        logger.dev(f"process_screenshot_event error: {e}")
         return ""
 
 def session_summary_string() -> str:
     s = _stats
     return (
-        f"📊 pop={s['arena_pop']}, stop={s['arena_stop']}, "
-        f"manual={s['ignored_manual']}, dup={s['ignored_duplicates']}, "
-        f"no_tag={s['ignored_no_tag']}, old={s['ignored_old']}, "
-        f"stale={s['ignored_stale']}, errors={s['errors']}"
+        f"stats: pop={s['arena_pop']}, stop={s['arena_stop']}, "
+        f"dup={s['ignored_duplicates']}, no_tag={s['ignored_no_tag']}, "
+        f"old={s['ignored_old']}, stale={s['ignored_stale']}, errors={s['errors']}"
     )
