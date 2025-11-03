@@ -1,11 +1,14 @@
-# file: desktop_app/main.py
 import sys
 import socket
 from pathlib import Path
 from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtGui import QIcon
+
 from ui.main_window import MainWindow
+from ui.wizard.wizard_window import WizardWindow
+
 from infrastructure.logger import logger
+from infrastructure.config import load_config, save_config
 
 
 class SingleInstance:
@@ -35,7 +38,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
 
-    # 🖼️ Ikona aplikacji
+    # Ikona aplikacji
     icon_path = Path("icon.ico")
     if not icon_path.exists():
         alt_path = Path.cwd() / "ui" / "icon.ico"
@@ -43,8 +46,24 @@ if __name__ == "__main__":
             icon_path = alt_path
     app.setWindowIcon(QIcon(str(icon_path)))
 
-    window = MainWindow()
-    window.show()
+    cfg = load_config()
 
-    logger.dev("🚀 Application started.")
-    sys.exit(app.exec())
+    def start_main():
+        window = MainWindow()
+        window.show()
+        logger.dev("🚀 Application started.")
+        sys.exit(app.exec())
+
+    if cfg.get("first_run", True):
+        wizard = WizardWindow()
+        # po sukcesie lub skipie → ustaw first_run False i startuj main
+        def _finish_and_start():
+            cfg["first_run"] = False
+            save_config(cfg)
+            wizard.close()
+            start_main()
+        wizard.finishedSignal.connect(_finish_and_start)
+        wizard.show()
+        sys.exit(app.exec())
+    else:
+        start_main()

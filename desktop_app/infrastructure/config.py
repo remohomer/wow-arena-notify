@@ -12,11 +12,6 @@ from typing import Dict
 from infrastructure.logger import logger
 
 
-# -------------------------------------------------------
-# AppData location:
-# C:\Users\<USER>\AppData\Local\WoWArenaNotify\config.json
-# -------------------------------------------------------
-
 def get_appdata_dir() -> Path:
     """Return AppData\\Local\\WoWArenaNotify (create if missing)."""
     appdata = Path(os.getenv("APPDATA") or Path.home() / "AppData/Roaming")
@@ -34,9 +29,8 @@ os.environ["WOW_ARENA_NOTIFY_CONFIG"] = str(CONFIG_FILE.resolve())
 
 
 # -------------------------------------------------------
-# Default config
+# Default config (dodałem first_run=True)
 # -------------------------------------------------------
-
 DEFAULT_CFG: Dict[str, object] = {
     "game_folder": "",
     "countdown_time": 36,
@@ -44,13 +38,10 @@ DEFAULT_CFG: Dict[str, object] = {
     "device_id": "",
     "device_secret": "",
     "desktop_id": "",
-    "delay_offset": 2
+    "delay_offset": 2,
+    "first_run": True,   # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 }
 
-
-# -------------------------------------------------------
-# Helpers
-# -------------------------------------------------------
 
 def ensure_desktop_id(cfg: dict) -> dict:
     """Generate persistent local desktop_id if missing."""
@@ -60,10 +51,6 @@ def ensure_desktop_id(cfg: dict) -> dict:
         logger.info(f"💻 Generated new desktop_id: {cfg['desktop_id']}")
     return cfg
 
-
-# -------------------------------------------------------
-# Load / Save
-# -------------------------------------------------------
 
 def load_config() -> dict:
     """Load config from disk or use defaults."""
@@ -104,8 +91,5 @@ def save_config(cfg: dict):
 
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=4, ensure_ascii=False)
-
-        # ✅ No log.success here (no spam)
-
     except Exception as e:
         logger.error(f"❌ Failed to save config.json: {e}")

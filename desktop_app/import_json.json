@@ -1,0 +1,15 @@
+{
+  "__time_sync__": {
+    "offset": 0,
+    "drift": 0
+  },
+  "arena_events": {},
+  "devices": {},
+  "pairing": {},
+  "broadcast": {
+    "message": "✅ System OK — no issues at the moment.",
+    "level": "info",
+    "color": "#00e676",
+    "updated": 1730562000
+  }
+}
