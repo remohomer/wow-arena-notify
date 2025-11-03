@@ -1,30 +1,133 @@
-﻿@echo off
-setlocal enabledelayedexpansion
-
-:: ===== WoW Arena Notify — Clean Git List =====
-set OUTPUT=project_tree.txt
-
-echo Generuje liste plikow dla GitHub -> %OUTPUT%
-echo.
-
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ErrorActionPreference='Stop';" ^
-  "$root = Get-Location();" ^
-  "$excludeDirRegex = '(^|\\|/)(\.git|dist|build|\.gradle|__pycache__|node_modules|tmp|temp|\.pyinstaller_cache|\.firebase|\.runtime|releases|debug)(\\|/|$)';" ^
-  "$excludeExt = @('.iml','.class','.log','.db','.sqlite','.sqlite3','.zip','.apk','.aab','.exe','.dll','.so','.pyc','.pyo','Thumbs.db','.DS_Store','.pem','.key','.crt','.enc','.spec');" ^
-  "$excludeNames = @('google-services.json','firebase-adminsdk.json','.env');" ^
-  "$files = Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch $excludeDirRegex -and ($excludeExt -notcontains $_.Extension.ToLower()) -and (-not ($excludeNames -contains $_.Name)) };" ^
-  "$rel = $files | ForEach-Object { $_.FullName.Substring($root.Path.Length + 1) } | Sort-Object;" ^
-  "$rel | Set-Content -Encoding UTF8 '%OUTPUT%';" ^
-  "Write-Host ('Zapisano ' + $rel.Count + ' plikow do %OUTPUT%');"
-
-if exist "%OUTPUT%" (
-  echo.
-  echo ✅ Gotowe: %OUTPUT%
-) else (
-  echo.
-  echo ❌ Nie udalo sie utworzyc %OUTPUT%
-)
-
-echo.
-pause
+﻿.gitignore
+android_app\.gitignore
+android_app\app\.gitignore
+android_app\app\build.gradle.kts
+android_app\app\proguard-rules.pro
+android_app\app\src\androidTest\java\pl\remoh\wowarenanotify\ExampleInstrumentedTest.kt
+android_app\app\src\main\AndroidManifest.xml
+android_app\app\src\main\ic_launcher-playstore.png
+android_app\app\src\main\ic_stat_name-playstore.png
+android_app\app\src\main\java\pl\remoh\wowarenanotify\BootReceiver.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\core\ConfigHelper.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\core\CredentialsProvider.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\core\network\HttpHelper.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\core\SettingsManager.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\fcm\ArenaMessagingService.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\fcm\CountdownService.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\fcm\RealtimeListenerService.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\fcm\TimeSync.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\HeartbeatWorker.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\MainActivity.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\PairingActivity.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\SplashActivity.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\components\BottomNavigationBar.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\screens\ArenaApp.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\screens\ArenaCountdown.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\screens\HomeScreen.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\screens\ManualTab.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\screens\PairingScreen.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\screens\QRTab.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\screens\SettingsScreen.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\theme\Color.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\theme\Theme.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\theme\ThemeController.kt
+android_app\app\src\main\java\pl\remoh\wowarenanotify\ui\theme\Type.kt
+android_app\app\src\main\res\drawable\ic_launcher_background.xml
+android_app\app\src\main\res\drawable\ic_launcher_foreground.xml
+android_app\app\src\main\res\drawable\ic_stat_name_background.xml
+android_app\app\src\main\res\drawable\ic_stat_name_foreground.xml
+android_app\app\src\main\res\drawable\portal_icon.png
+android_app\app\src\main\res\drawable\splash_bg.png
+android_app\app\src\main\res\font\medievalsharp.ttf
+android_app\app\src\main\res\layout\activity_pairing.xml
+android_app\app\src\main\res\layout\activity_splash.xml
+android_app\app\src\main\res\layout\splash_screen.xml
+android_app\app\src\main\res\mipmap-anydpi-v26\ic_launcher.xml
+android_app\app\src\main\res\mipmap-anydpi-v26\ic_launcher_round.xml
+android_app\app\src\main\res\mipmap-hdpi\ic_launcher.webp
+android_app\app\src\main\res\mipmap-hdpi\ic_launcher_foreground.webp
+android_app\app\src\main\res\mipmap-hdpi\ic_launcher_round.webp
+android_app\app\src\main\res\mipmap-mdpi\ic_launcher.webp
+android_app\app\src\main\res\mipmap-mdpi\ic_launcher_foreground.webp
+android_app\app\src\main\res\mipmap-mdpi\ic_launcher_round.webp
+android_app\app\src\main\res\mipmap-xhdpi\ic_launcher.webp
+android_app\app\src\main\res\mipmap-xhdpi\ic_launcher_foreground.webp
+android_app\app\src\main\res\mipmap-xhdpi\ic_launcher_round.webp
+android_app\app\src\main\res\mipmap-xxhdpi\ic_launcher.webp
+android_app\app\src\main\res\mipmap-xxhdpi\ic_launcher_foreground.webp
+android_app\app\src\main\res\mipmap-xxhdpi\ic_launcher_round.webp
+android_app\app\src\main\res\mipmap-xxxhdpi\ic_launcher.webp
+android_app\app\src\main\res\mipmap-xxxhdpi\ic_launcher_foreground.webp
+android_app\app\src\main\res\mipmap-xxxhdpi\ic_launcher_round.webp
+android_app\app\src\main\res\values\colors.xml
+android_app\app\src\main\res\values\ic_launcher_background.xml
+android_app\app\src\main\res\values\ic_stat_name_background.xml
+android_app\app\src\main\res\values\strings.xml
+android_app\app\src\main\res\values\themes.xml
+android_app\app\src\main\res\xml\backup_rules.xml
+android_app\app\src\main\res\xml\data_extraction_rules.xml
+android_app\app\src\test\java\pl\remoh\wowarenanotify\ExampleUnitTest.kt
+android_app\build.gradle.kts
+android_app\gradle.properties
+android_app\gradle\wrapper\gradle-wrapper.jar
+android_app\gradle\wrapper\gradle-wrapper.properties
+android_app\gradlew
+android_app\gradlew.bat
+android_app\local.properties
+android_app\settings.gradle.kts
+desktop_app\.gitignore
+desktop_app\assets\gong.wav
+desktop_app\assets\portal_icon.png
+desktop_app\build_ fast.bat
+desktop_app\build_slow.bat
+desktop_app\controllers\__init__.py
+desktop_app\controllers\countdown_controller.py
+desktop_app\controllers\listener_controller.py
+desktop_app\controllers\tray_controller.py
+desktop_app\functions\.gitignore
+desktop_app\functions\index.mjs
+desktop_app\functions\package.json
+desktop_app\functions\package-lock.json
+desktop_app\functions\test_hmac_pair.mjs
+desktop_app\icon.ico
+desktop_app\infrastructure\backup.py
+desktop_app\infrastructure\config.py
+desktop_app\infrastructure\credentials_provider.py
+desktop_app\infrastructure\logger.py
+desktop_app\infrastructure\utils.py
+desktop_app\infrastructure\watcher.py
+desktop_app\main.py
+desktop_app\refactor_structure.py
+desktop_app\scripts\verify_secret.py
+desktop_app\services\__init__.py
+desktop_app\services\arena_logic.py
+desktop_app\services\firebase_notify.py
+desktop_app\services\pairing.py
+desktop_app\services\push\__init__.py
+desktop_app\services\push\arena_realtime.py
+desktop_app\services\tag_detector.py
+desktop_app\services\time_sync.py
+desktop_app\ui\__init__.py
+desktop_app\ui\dialogs\__init__.py
+desktop_app\ui\dialogs\how_it_works.py
+desktop_app\ui\dialogs\pair_device.py
+desktop_app\ui\dialogs\test_connection.py
+desktop_app\ui\main_window.py
+desktop_app\ui\style_loader.py
+desktop_app\ui\styles.qss
+desktop_app\ui\tabs\__init__.py
+desktop_app\ui\tabs\logs_tab.py
+desktop_app\ui\tabs\pairing_tab.py
+desktop_app\ui\tabs\queue_tab.py
+desktop_app\ui\tabs\settings_tab.py
+desktop_app\ui\tabs\tester_tab.py
+desktop_app\ui\toast.py
+list_projects.bat
+project_tree.txt
+README.md
+rewrite_headers.py
+wow_addon\QueuePopNotify\media\qr_android.tga
+wow_addon\QueuePopNotify\media\qr_desktop.tga
+wow_addon\QueuePopNotify\QueuePopNotify — kopia (bez final range).lua
+wow_addon\QueuePopNotify\QueuePopNotify — kopia (z final range, z wyborem dzwieku).lua
+wow_addon\QueuePopNotify\QueuePopNotify.lua

@@ -28,9 +28,10 @@ __pycache__/
 desktop_app/dist/
 desktop_app/build/
 desktop_app/.pyinstaller_cache/
+*.toc
+*.pkg
+*.html
 *.spec
-*.egg-info/
-*.eggs/
 
 # Virtualenvs
 venv/
@@ -47,21 +48,11 @@ temp/
 tmp/
 
 ############################################
-# NODE / FIREBASE FUNCTIONS
-############################################
-desktop_app/functions/node_modules/
-desktop_app/functions/.firebase/
-desktop_app/functions/.runtime/
-desktop_app/functions/.cache/
-desktop_app/functions/test_*/
-
-############################################
 # SECRETS / ENV
 ############################################
 .env
 .env.*
 desktop_app/.env
-desktop_app/core/.env
 
 # Keys / Certificates
 *.pem
@@ -69,23 +60,28 @@ desktop_app/core/.env
 *.crt
 *.enc
 
-# Firebase admin keys
-wow_addon/QueuePopNotify/firebase-adminsdk-*.json
-desktop_app/firebase_credentials.enc
-
 ############################################
-# FIREBASE PROJECT FILES (LOCAL)
+# FIREBASE / FUNCTIONS
 ############################################
 desktop_app/.firebaserc
 desktop_app/firebase.json
 
+# Firebase admin keys
+wow_addon/QueuePopNotify/firebase-adminsdk-*.json
+desktop_app/firebase_credentials.enc
+
+desktop_app/functions/node_modules/
+desktop_app/functions/.runtime/
+desktop_app/functions/.cache/
+desktop_app/functions/.firebase/
+desktop_app/functions/test_*/
+
 ############################################
-# ANDROID STUDIO
+# ANDROID
 ############################################
 android_app/.gradle/
 android_app/.idea/
 android_app/local.properties
-android_app/caches/
 android_app/app/build/
 android_app/build/
 android_app/.externalNativeBuild/
@@ -93,23 +89,17 @@ android_app/app/release/
 android_app/app/debug/
 *.apk
 *.aab
-
-# Service account
 android_app/app/google-services.json
-
-# Gradle wrapper cache
 .gradle/
-android_app/gradle/wrapper/gradle-wrapper.jar
 
 ############################################
 # WOW ADDON BUILD JUNK
 ############################################
 wow_addon/QueuePopNotify/*.bak
+wow_addon/QueuePopNotify/*kopia*.lua
 wow_addon/QueuePopNotify/*.zip
 
 ############################################
 # LOGS
 ############################################
 *.log
-*.toc.html
-*.toc.tmp

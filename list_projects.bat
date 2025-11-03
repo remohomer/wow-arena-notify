@@ -1,29 +1,34 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal ENABLEDELAYEDEXPANSION
 
-:: ===== WoW Arena Notify — Project Tree (Windows .bat using PowerShell) =====
 set OUTPUT=project_tree.txt
 
 echo Generuje liste plikow (bez smieci) -> %OUTPUT%
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ErrorActionPreference='Stop';" ^
+powershell -NoProfile -ExecutionPolicy Bypass ^
+  "$ErrorActionPreference = 'Stop';" ^
   "$root = Get-Location;" ^
-  "$excludeDirRegex = '(^|\\|/)(\.git|build|\.gradle|\.idea|__pycache__|\.venv|venv|node_modules|out|dist|tmp|temp)(\\|/|$)';" ^
-  "$excludeExt = @('.iml','.class','.log','.db','.sqlite','.sqlite3','.png','.jpg','.jpeg','.gif','.ico','.webp','.mp3','.wav','.mp4','.zip','.tar','.gz','.exe','.dll','.so','.pyc','.pyo','Thumbs.db','.DS_Store');" ^
-  "$files = Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch $excludeDirRegex -and ($excludeExt -notcontains $_.Extension.ToLower()) -and ($excludeExt -notcontains $_.Name) };" ^
+  "$excludeDirs = @('.git','.idea','.vscode','build','dist','.gradle','__pycache__','node_modules','.pyinstaller_cache','tmp','temp','caches','release','debug');" ^
+  "$excludeExt = @('.iml','.class','.log','.db','.sqlite','.sqlite3','.zip','.gz','.tar','.apk','.aab','.exe','.dll','.so','.pyc','.pyo','.pyd','.pkg','.toc','.html','.spec','.enc');" ^
+  "$excludeNames = @('google-services.json','firebase.json','.env','.firebaserc');" ^
+  "$files = Get-ChildItem -Recurse -File | Where-Object {" ^
+  "    $relative = $_.FullName.Substring($root.Path.Length + 1);" ^
+  "" ^
+  "    foreach ($dir in $excludeDirs) {" ^
+  "        if ($relative.ToLower().Contains('\'+$dir.ToLower()+'\')) { return $false }" ^
+  "    }" ^
+  "" ^
+  "    if ($excludeExt -contains $_.Extension.ToLower()) { return $false }" ^
+  "    if ($excludeNames -contains $_.Name.ToLower()) { return $false }" ^
+  "" ^
+  "    return $true" ^
+  "};" ^
   "$rel = $files | ForEach-Object { $_.FullName.Substring($root.Path.Length + 1) } | Sort-Object;" ^
   "$rel | Set-Content -Encoding UTF8 '%OUTPUT%';" ^
-  "Write-Host ('Zapisano ' + $rel.Count + ' plikow do %OUTPUT%');"
+  "Write-Host \"Zapisano $($rel.Count) plikow do %OUTPUT%\""
 
-if exist "%OUTPUT%" (
-  echo.
-  echo ✅ Gotowe: %OUTPUT%
-) else (
-  echo.
-  echo ❌ Nie udalo sie utworzyc %OUTPUT%. Uruchom to okno jako Administrator lub sprawdz uprawnienia do folderu.
-)
-
+echo.
+echo ✅ Gotowe: %OUTPUT%
 echo.
 pause
