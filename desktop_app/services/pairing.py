@@ -76,10 +76,13 @@ def unpair_device():
 
     had_pairing = bool(cfg.get("pairing_id"))
 
+    # remove pairing keys safely
     for key in ("pairing_id", "device_id", "device_secret"):
-        cfg.pop(key, None)
+        if key in cfg:
+            del cfg[key]
 
-    save_config(cfg)
+    # ✅ save immediately (allow overwriting protected keys with empty values)
+    save_config(cfg, protect=False)
 
     if had_pairing:
         logger.user("🔓 Device unpaired successfully.")
@@ -93,7 +96,9 @@ def get_pairing_status():
     device_id = cfg.get("device_id", "")
     device_secret = cfg.get("device_secret", "")
     desktop_id = cfg.get("desktop_id", "")
-    paired = bool(pairing_id and device_id and device_secret)
+
+    # ✅ corrected condition
+    paired = all([pairing_id, device_id, device_secret])
 
     return {
         "paired": paired,

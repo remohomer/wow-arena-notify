@@ -53,7 +53,7 @@ class StepPairing(QWidget):
 
                 # ⬇⬇ LAZY IMPORT HERE ⬇⬇
                 from ui.wizard.wizard_window import WizardWindow
-                WizardWindow.instance.auto_next(900)
+                WizardWindow.instance.auto_finish_once()
         else:
             self.state.setText("Waiting for pairing…")
 

@@ -28,6 +28,7 @@ class WizardWindow(QWidget):
       2 = Android app
       3 = Pairing
       4 = All set
+    ESC = Back
     """
     finishedSignal = Signal()
     instance = None
@@ -43,7 +44,9 @@ class WizardWindow(QWidget):
             self.setWindowIcon(QIcon(str(icon_path)))
 
         self.cfg = load_config()
-        self.auto_jump_used = False   # <— prevents jump-loop on Back
+
+        # anti-loop when auto finishing
+        self.finish_jump_used = False
 
         # -------- header
         self.header = QLabel("Welcome", self)
@@ -140,16 +143,16 @@ class WizardWindow(QWidget):
         # Back
         self.btn_back.setVisible(self.current > 0)
 
-        # Skip ONLY on step 3 (Pairing)
+        # Skip ONLY on step 3
         self.btn_skip.setVisible(self.current == 3)
 
         # Next visibility logic:
         if self.current == 1:
-            # WoW folder: show NEXT if already chosen
+            # show NEXT if folder already chosen (when returning)
             has_folder = bool(cfg.get("game_folder"))
             self.btn_next.setVisible(has_folder)
         elif self.current == 3:
-            # Pairing: hide next (auto)
+            # hide NEXT (pairing auto advances)
             self.btn_next.setVisible(False)
         else:
             self.btn_next.setVisible(True)
@@ -173,6 +176,7 @@ class WizardWindow(QWidget):
             if not ok:
                 return
 
+        # finish
         if self.current == len(self.steps) - 1:
             self.finishedSignal.emit()
             return
@@ -184,8 +188,13 @@ class WizardWindow(QWidget):
         self.set_step(4)
 
     # ---------------------------------------
-    def auto_next(self, delay_ms=600):
-        if self.auto_jump_used:
+    # NORMAL auto advance (+1)
+    def auto_next_normal(self, delay_ms=300):
+        QTimer.singleShot(delay_ms, lambda: self.set_step(self.current + 1))
+
+    # FINISH auto-advance (pairing)
+    def auto_finish_once(self, delay_ms=900):
+        if self.finish_jump_used:
             return
-        self.auto_jump_used = True
+        self.finish_jump_used = True
         QTimer.singleShot(delay_ms, lambda: self.set_step(4))

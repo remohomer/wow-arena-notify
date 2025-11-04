@@ -44,7 +44,7 @@ class StepGameFolder(QWidget):
         self.info.setText(self._fmt())
 
         from ui.wizard.wizard_window import WizardWindow
-        WizardWindow.instance.auto_next()
+        WizardWindow.instance.auto_next_normal()
 
     def can_continue(self):
         ok = bool(self.cfg.get("game_folder"))
